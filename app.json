@@ -1,17 +1,21 @@
 {
   "expo": {
-    "name": "ZeelCloud",
+    "name": "Zeel Cloud",
     "slug": "ZeelCloudRN",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.ZeelCloudRN"
+      "bundleIdentifier": "com.zeelinfotech.zeelcloud",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "buildNumber": "3"
     },
     "android": {
-      "package": "com.zeelinfosys.zeelcloud",
+      "package": "com.zeel.linfotech",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
