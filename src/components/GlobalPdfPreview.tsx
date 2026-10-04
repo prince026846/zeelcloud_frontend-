@@ -21,27 +21,8 @@ const PREVIEW_FIT_SCRIPT = `
 (function() {
   function applyFit() {
     try {
-      if (!document.getElementById('preview-boost')) {
-        var boost = document.createElement('style');
-        boost.id = 'preview-boost';
-        boost.textContent = [
-          'body { font-size: 16px !important; }',
-          '.company-name { font-size: 26px !important; }',
-          '.company-address, .period-row, .gst-row { font-size: 14px !important; }',
-          '.title, .report-title, .party-name { font-size: 17px !important; }',
-          '.party-details, .meta-row, .info-address, .info-label { font-size: 13px !important; }',
-          '.info-value, .info-meta { font-size: 15px !important; }',
-          'th { font-size: 12px !important; padding: 7px 2px !important; }',
-          'td { font-size: 14px !important; padding: 6px 2px !important; }',
-          'td.shrink-7 { font-size: 11px !important; }',
-          'td.shrink-9 { font-size: 9.5px !important; letter-spacing: -0.4px !important; }',
-          '.summary-table td, .summary-row, .summary-line, .green-header, .green-footer { font-size: 14px !important; }',
-          '.tot-lbl, .tot-val, .bank-row, .bank-title, .sign-title, .auth-sign { font-size: 14px !important; }',
-          '.tot-grand .tot-lbl, .tot-grand .tot-val { font-size: 16px !important; }',
-          /* Keep filler breathing room readable after font boost */
-          '.filler-row td { min-height: 96px !important; }'
-        ].join('\\n');
-        document.head.appendChild(boost);
+      if (false) {
+        // Disabled font boost to match downloaded PDF exact styling
       }
 
       var page = document.getElementById('pdf-page') || document.body;
@@ -51,8 +32,8 @@ const PREVIEW_FIT_SCRIPT = `
       page.style.transformOrigin = 'top left';
       page.style.margin = '0';
       page.style.boxSizing = 'border-box';
-      page.style.width = '680px';
-      page.style.maxWidth = '680px';
+      page.style.width = '794px';
+      page.style.maxWidth = '794px';
 
       var pageWidth = Math.max(page.scrollWidth, page.offsetWidth, 1);
       var viewWidth = window.innerWidth || document.documentElement.clientWidth || 1;
@@ -205,7 +186,7 @@ export const GlobalPdfPreview = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -214,15 +195,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: Colors.border,
+    borderTopWidth: 3,
+    borderTopColor: Colors.primaryLight,
     elevation: 3,
   },
   closeBtn: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: Colors.infoLight,
+    backgroundColor: Colors.purple100,
   },
   headerTitle: {
     fontSize: 18,
@@ -231,19 +214,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    backgroundColor: '#dcdcdc',
+    backgroundColor: Colors.gray100,
     padding: 0,
   },
   webview: {
     flex: 1,
-    backgroundColor: '#dcdcdc',
+    backgroundColor: Colors.gray100,
   },
   footer: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.surface,
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 30 : 16,
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    borderTopColor: Colors.hairline,
   },
   downloadBtn: {
     backgroundColor: Colors.primary,
@@ -255,7 +238,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   downloadText: {
-    color: 'white',
+    color: Colors.white,
     fontSize: 16,
     fontWeight: 'bold',
   },

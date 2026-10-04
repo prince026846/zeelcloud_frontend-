@@ -19,19 +19,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.searchRow}>
-        <Icon name="magnify" size={20} color={Colors.gray400} style={styles.searchIcon} />
+        <Icon name="magnify" size={20} color={Colors.primaryLight} style={styles.searchIcon} />
         <TextInput
           style={styles.input}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={Colors.gray400}
+          placeholderTextColor={Colors.primaryLight}
           autoCapitalize="none"
           autoCorrect={false}
+          multiline={false}
+          numberOfLines={1}
         />
         {value.length > 0 ? (
           <TouchableOpacity onPress={() => onChangeText('')} style={styles.clearButton}>
-            <Icon name="close-circle" size={18} color={Colors.gray400} />
+            <Icon name="close-circle" size={18} color={Colors.primaryLight} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -56,7 +58,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.hairline,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     minHeight: 44,
@@ -66,9 +68,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: Typography.fontSizes.base,
+    fontSize: Typography.fontSizes.sm,
     color: Colors.textPrimary,
-    paddingVertical: Spacing.sm,
   },
   clearButton: {
     padding: 4,

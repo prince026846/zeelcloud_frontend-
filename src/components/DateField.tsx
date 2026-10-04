@@ -56,10 +56,14 @@ export const DateField: React.FC<DateFieldProps> = ({
   const pickerDate: Date =
     isoToDate(value) ?? (defaultDate ? isoToDate(defaultDate) : null) ?? new Date();
 
-  const handlePicked = (event: DateTimePickerEvent, date?: Date) => {
+  const handleValueChange = (event: DateTimePickerEvent, date?: Date) => {
     if (Platform.OS !== 'ios') setShowPicker(false); // Android dialog closes itself
-    if (event.type === 'dismissed' || !date) return;
+    if (!date) return;
     onChange(dateToIso(date));
+  };
+
+  const handleDismiss = () => {
+    setShowPicker(false);
   };
 
   const display = isoToDisplay(value);
@@ -89,7 +93,7 @@ export const DateField: React.FC<DateFieldProps> = ({
 
       {/* Android: system calendar dialog. iOS: inline calendar in a bottom sheet. */}
       {showPicker && Platform.OS !== 'ios' && (
-        <DateTimePicker value={pickerDate} mode="date" display="default" onChange={handlePicked} />
+        <DateTimePicker value={pickerDate} mode="date" display="default" onValueChange={handleValueChange} onDismiss={handleDismiss} />
       )}
       {Platform.OS === 'ios' && (
         <Modal visible={showPicker} transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
@@ -105,7 +109,8 @@ export const DateField: React.FC<DateFieldProps> = ({
                 value={pickerDate}
                 mode="date"
                 display="inline"
-                onChange={handlePicked}
+                onValueChange={handleValueChange}
+                onDismiss={handleDismiss}
                 themeVariant="light"
               />
             </View>
