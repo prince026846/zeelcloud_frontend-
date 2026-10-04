@@ -56,7 +56,7 @@ export const DateField: React.FC<DateFieldProps> = ({
   const pickerDate: Date =
     isoToDate(value) ?? (defaultDate ? isoToDate(defaultDate) : null) ?? new Date();
 
-  const handleValueChange = (event: DateTimePickerEvent, date?: Date) => {
+  const handleValueChange = (event: any, date?: Date) => {
     if (Platform.OS !== 'ios') setShowPicker(false); // Android dialog closes itself
     if (!date) return;
     onChange(dateToIso(date));

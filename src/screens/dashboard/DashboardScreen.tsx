@@ -55,7 +55,6 @@ export const DashboardScreen: React.FC = () => {
     { label: 'Purchase', value: osSummary.totalPurchase, color: Colors.primaryLight },
     { label: 'Sales', value: osSummary.totalSales, color: Colors.primary },
     { label: 'GP', value: osSummary.totalGp, color: Colors.success },
-
   ];
   const maxVal = Math.max(1, ...osBars.map((b) => b.value));
   const totalOs = osBars.reduce((sum, b) => sum + b.value, 0);
@@ -116,7 +115,7 @@ export const DashboardScreen: React.FC = () => {
               <TouchableOpacity
                 key={b.key}
                 style={styles.bookmarkCard}
-                onPress={() => navigation.navigate(b.route)}
+                onPress={() => navigation.navigate(b.route as any)}
                 activeOpacity={0.85}
               >
                 <View style={[styles.bookmarkIcon, { backgroundColor: `${b.color}1A` }]}>
@@ -191,7 +190,7 @@ export const DashboardScreen: React.FC = () => {
               <View style={styles.tooltipRow}>
                 <Text style={styles.tooltipLabel}>Share of total O/S</Text>
                 <Text style={styles.tooltipValue}>
-                  {totalOs > 0 ? formatPercent((activeBar.value / totalOs) * 100) : '0'}%
+                  {`${totalOs > 0 ? formatPercent((activeBar.value / totalOs) * 100) : '0'}%`}
                 </Text>
               </View>
               <View style={styles.tooltipRow}>
@@ -269,7 +268,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.purple100,
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: BorderRadius.full,
@@ -300,6 +299,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.hairline,
     ...Shadows.card,
   },
   bookmarkIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
   comingSoonBadge: {
     marginTop: 4,
     alignSelf: 'flex-start',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: Colors.warningLight,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,

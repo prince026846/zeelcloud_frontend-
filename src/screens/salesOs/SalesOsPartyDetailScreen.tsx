@@ -179,7 +179,7 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
             activeOpacity={0.8}
             style={styles.waIcon}
           >
-            <Icon name="file-pdf-box" size={24} color={Colors.gradientStart} />
+            <Icon name="file-pdf-box" size={24} color={Colors.pdf} />
           </TouchableOpacity>
         </View>
 
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   callBtn: {
-    backgroundColor: Colors.success,
+    backgroundColor: Colors.call,
   },
   shareActionBtn: {
     backgroundColor: Colors.purple100,

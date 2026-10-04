@@ -101,7 +101,7 @@ export const SubUserListScreen: React.FC = () => {
           onPress={() => navigation.navigate('SubUserDetail', { userId: item.id })}
           activeOpacity={0.7}
         >
-          <Icon name="eye-outline" size={18} color={Colors.primary} />
+          <Icon name="eye-outline" size={18} color={Colors.blue600} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, styles.editBtn]}
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  viewBtn: { backgroundColor: Colors.primaryLight },
+  viewBtn: { backgroundColor: Colors.infoLight },
   editBtn: { backgroundColor: Colors.warningLight },
   deleteBtn: { backgroundColor: Colors.dangerLight },
   empty: { alignItems: 'center', paddingTop: 60, gap: Spacing.sm },

@@ -21,7 +21,7 @@ export interface InterestBill {
 
 const GST_RATE = 0.18;
 const DEFAULT_TERM_DAYS = 30;
-const MAROON = '#8E1B3A';
+const ACCENT = Colors.primary;
 
 // Map an outstanding invoice to the fields the interest calc needs, with
 // sensible fallbacks for the current mock data (the real API supplies these).
@@ -206,7 +206,7 @@ const Field: React.FC<{
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.55)',
+    backgroundColor: 'rgba(66,64,150,0.55)',
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
   },
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   resultValue: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.warning },
   billsNote: { fontSize: Typography.fontSizes.xs, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.xs },
   exitBtn: {
-    backgroundColor: MAROON,
+    backgroundColor: ACCENT,
     paddingVertical: Spacing.md,
     alignItems: 'center',
   },

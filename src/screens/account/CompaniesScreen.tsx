@@ -117,6 +117,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    borderTopWidth: 3,
+    borderTopColor: Colors.primaryLight,
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: Spacing.md },
   brand: {
@@ -125,7 +127,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     letterSpacing: 0.5,
   },
-  brandLight: { color: Colors.textPrimary },
+  brandLight: { color: Colors.primaryLight },
   welcome: { fontSize: Typography.fontSizes.sm, color: Colors.textSecondary },
   title: {
     fontSize: Typography.fontSizes.xxl,

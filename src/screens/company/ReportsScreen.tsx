@@ -26,18 +26,18 @@ interface ReportModule {
 }
 
 const reportModules: ReportModule[] = [
-  { label: 'Sales Outstanding', desc: 'Party / broker / area wise', icon: 'currency-inr', color: Colors.primary, route: 'SalesOsStack', permissionKey: 'Sales OS' },
-  { label: 'Purchase Outstanding', desc: 'Supplier outstanding', icon: 'cart-outline', color: Colors.primaryLight, route: 'PurchaseOsStack', permissionKey: 'Purchase OS' },
+  { label: 'Sales Outstanding', desc: 'Party / broker / area wise', icon: 'currency-inr', color: Colors.success, route: 'SalesOsStack', permissionKey: 'Sales OS' },
+  { label: 'Purchase Outstanding', desc: 'Supplier outstanding', icon: 'cart-outline', color: Colors.warning, route: 'PurchaseOsStack', permissionKey: 'Purchase OS' },
   { label: 'GP Outstanding', desc: 'General purchase outstanding', icon: 'file-document-check-outline', color: Colors.purple500, route: 'GpOsStack', permissionKey: 'GP OS' },
-  { label: 'Sales Register', desc: 'Sales invoice register', icon: 'receipt', color: Colors.blue500, route: 'SalesRegisterStack', permissionKey: 'Sales Register' },
-  { label: 'Purchase Register', desc: 'Purchase invoice register', icon: 'clipboard-list-outline', color: Colors.purple500, route: 'PurchaseRegisterStack', permissionKey: 'Purchase Register' },
-  { label: 'GP Register', desc: 'Job work / processing', icon: 'chart-bar', color: Colors.warning, route: 'GpRegisterStack', permissionKey: 'GP Register' },
+  { label: 'Sales Register', desc: 'Sales invoice register', icon: 'receipt', color: Colors.primary, route: 'SalesRegisterStack', permissionKey: 'Sales Register' },
+  { label: 'Purchase Register', desc: 'Purchase invoice register', icon: 'clipboard-list-outline', color: Colors.primaryLight, route: 'PurchaseRegisterStack', permissionKey: 'Purchase Register' },
+  { label: 'GP Register', desc: 'Job work / processing', icon: 'chart-bar', color: Colors.blue500, route: 'GpRegisterStack', permissionKey: 'GP Register' },
   { label: 'Non-Issue', desc: 'Yarn / beam / gray', icon: 'format-list-text', color: Colors.danger, route: 'StockStack', permissionKey: 'Non-Issue Stock' },
   {
     label: 'Machine Wise Beam Stock',
     desc: 'Coming soon — temporarily unavailable',
     icon: 'cog-outline',
-    color: Colors.purple600,
+    color: Colors.gray600,
     route: 'MachineWiseStack',
     permissionKey: 'Machine Wise Beam Stock',
     permissionKeys: ['Machine Wise Beam Stock', 'Beam Stock'],
@@ -70,7 +70,7 @@ export const ReportsScreen: React.FC = () => {
 
   const openReport = (m: ReportModule) => {
     recordReport({ route: m.route, label: m.label, icon: m.icon, color: m.color });
-    navigation.navigate(m.route);
+    navigation.navigate(m.route as any);
   };
 
   return (
@@ -124,7 +124,7 @@ export const ReportsScreen: React.FC = () => {
                   style={styles.recentCard}
                   onPress={() => {
                     recordReport({ route: r.route, label: r.label, icon: r.icon, color: r.color });
-                    navigation.navigate(r.route);
+                    navigation.navigate(r.route as any);
                   }}
                   activeOpacity={0.85}
                 >
@@ -191,16 +191,18 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    borderTopWidth: 3,
+    borderTopColor: Colors.primaryLight,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center' },
   headerTitles: { flex: 1 },
-  headerTitle: { fontSize: Typography.fontSizes.xl, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
+  headerTitle: { fontSize: Typography.fontSizes.xl, fontWeight: Typography.fontWeights.bold, color: Colors.primary },
   headerSub: { fontSize: Typography.fontSizes.sm, color: Colors.textSecondary, marginTop: 2 },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.purple100,
     paddingHorizontal: Spacing.md,
     paddingVertical: 7,
     borderRadius: BorderRadius.full,
@@ -268,7 +270,7 @@ const styles = StyleSheet.create({
   label: { fontSize: Typography.fontSizes.base, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
   desc: { fontSize: Typography.fontSizes.sm, color: Colors.textSecondary, marginTop: 1 },
   comingSoonBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: Colors.warningLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,

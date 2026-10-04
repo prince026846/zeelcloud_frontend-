@@ -13,6 +13,11 @@ import { useCompanyStore } from '../../store/companyStore';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme';
 import type { SalesOsStackParamList, SalesOsBroker } from '../../types';
 import { toDDMMYYYY } from '../../utils/formatDate';
+import {
+  buildOutstandingReminderMessage,
+  openSmsReminder,
+  openWhatsAppReminder,
+} from '../../utils/outstandingReminder';
 
 type Props = {
   navigation: NativeStackNavigationProp<SalesOsStackParamList, 'SalesOsBrokerList'>;
@@ -50,9 +55,8 @@ export const SalesOsBrokerListScreen: React.FC<Props> = ({ navigation, route }) 
   const toDate = route.params.filter?.toDate;
 
   const call = (phone?: string) => phone && Linking.openURL(`tel:${phone}`).catch(() => {});
-  const sms = (phone?: string) => phone && Linking.openURL(`sms:${phone}`).catch(() => {});
-  const whatsapp = (phone?: string) =>
-    phone && Linking.openURL(`whatsapp://send?phone=91${phone.replace(/\D/g, '').slice(-10)}`).catch(() => {});
+  const reminder = (name: string, amount: number) =>
+    buildOutstandingReminderMessage({ recipientName: name, amount, company: selectedCompany });
 
   const renderItem = ({ item }: { item: SalesOsBroker }) => (
     <TouchableOpacity
@@ -72,13 +76,21 @@ export const SalesOsBrokerListScreen: React.FC<Props> = ({ navigation, route }) 
         <Text style={styles.amount}>₹ {money(item.totalOs)}</Text>
         <View style={styles.actionRow}>
           <TouchableOpacity style={[styles.actionBtn, styles.callBtn]} onPress={() => call(item.phone)} activeOpacity={0.7}>
-            <Icon name="phone" size={14} color={Colors.danger} />
+            <Icon name="phone" size={14} color={Colors.call} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.smsBtn]} onPress={() => sms(item.phone)} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.smsBtn]}
+            onPress={() => openSmsReminder(item.phone, reminder(item.name, item.totalOs))}
+            activeOpacity={0.7}
+          >
             <Icon name="message-text-outline" size={14} color={Colors.info} />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.waActionBtn]} onPress={() => whatsapp(item.phone)} activeOpacity={0.7}>
-            <Icon name="whatsapp" size={14} color="#25D366" />
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.waActionBtn]}
+            onPress={() => openWhatsAppReminder(item.phone, reminder(item.name, item.totalOs))}
+            activeOpacity={0.7}
+          >
+            <Icon name="whatsapp" size={14} color={Colors.whatsapp} />
           </TouchableOpacity>
         </View>
       </View>
@@ -148,7 +160,7 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#FDF6DB',
+    backgroundColor: Colors.lightWash,
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -181,7 +193,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  callBtn: { borderColor: Colors.danger, backgroundColor: Colors.dangerLight },
+  callBtn: { borderColor: Colors.call, backgroundColor: Colors.callLight },
   smsBtn: { borderColor: Colors.info, backgroundColor: Colors.infoLight },
-  waActionBtn: { borderColor: '#25D366', backgroundColor: '#E8F9EF' },
+  waActionBtn: { borderColor: Colors.whatsapp, backgroundColor: Colors.whatsappLight },
 });

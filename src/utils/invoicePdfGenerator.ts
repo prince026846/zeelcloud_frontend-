@@ -258,7 +258,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           }
           body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333;
+            color: #1a1a1a;
             font-size: 12px;
             -webkit-user-select: none;
             user-select: none;
@@ -289,7 +289,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           .company-name {
             font-size: 20px;
             font-weight: bold;
-            color: ${Colors.primary};
+            color: #1a1a1a;
             margin-bottom: 4px;
           }
           .company-address {
@@ -334,7 +334,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           }
           .info-label {
             font-size: 10px;
-            color: #555;
+            color: #555555;
             margin-bottom: 2px;
             font-weight: bold;
           }
@@ -367,7 +367,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           th {
             font-size: 9px;
             background-color: ${Colors.infoLight};
-            color: ${Colors.primary};
+            color: #1a1a1a;
             padding: 6px 2px;
             border-bottom: 1px solid ${Colors.primary};
             border-right: 1px solid ${Colors.primary};
@@ -381,7 +381,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             font-size: 11px;
             padding: 5px 2px;
             border-right: 1px solid ${Colors.primary};
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #E6E6E6;
             word-break: break-word;
             overflow-wrap: anywhere;
           }
@@ -499,7 +499,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             justify-content: space-between;
             gap: 8px;
             padding: 5px 10px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #E6E6E6;
           }
           .tot-lbl {
             font-weight: bold;
@@ -516,7 +516,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           }
           .tot-grand .tot-lbl, .tot-grand .tot-val {
             font-size: 13px;
-            color: ${Colors.primary};
+            color: #1a1a1a;
           }
           
           .footer {

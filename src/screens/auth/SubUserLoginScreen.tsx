@@ -89,7 +89,7 @@ export const SubUserLoginScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.logoSection}>
           <View style={styles.logoRow}>
             <View style={styles.logoIcon}>
-              <Icon name="account-group-outline" size={30} color={Colors.primary} />
+              <Icon name="account-group-outline" size={30} color={Colors.white} />
             </View>
           </View>
           <Text style={styles.brand}>
@@ -165,7 +165,7 @@ export const SubUserLoginScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.divider} />
             <View style={styles.secureBadge}>
               <Text style={styles.secureText}>Secure Sub-User Login</Text>
-              <Icon name="shield-account-outline" size={16} color={Colors.success} />
+              <Icon name="shield-account-outline" size={16} color={Colors.primary} />
             </View>
             <View style={styles.divider} />
           </View>
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: Typography.fontSizes.xs,
-    color: Colors.textSecondary,
+    color: Colors.primaryLight,
     marginTop: 4,
     letterSpacing: 0.5,
   },
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     fontSize: Typography.fontSizes.base,
-    color: Colors.textSecondary,
+    color: Colors.primaryLight,
     marginBottom: Spacing.xl,
   },
   form: {
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.hairline,
   },
   rowBetween: {
     flexDirection: 'row',

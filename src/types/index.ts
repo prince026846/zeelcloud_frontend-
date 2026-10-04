@@ -465,6 +465,24 @@ export interface LedgerEntry {
   narration?: string;
 }
 
+export interface NormalizedLedgerTransaction {
+  id: string;
+  date: string;
+  displayDate: string;
+  voucherType: string;
+  voucherNo: string;
+  particulars: string;
+  debit: number;
+  credit: number;
+  isDebit: boolean;
+  amount: number;
+  runningBalance: number;
+  transDetails: string;
+  hasTransDetails: boolean;
+  rawBalance?: number;
+  searchKey: string;
+}
+
 // Filters
 export interface ReportFilter {
   reportType: string;
@@ -587,7 +605,20 @@ export type AppStackParamList = {
   StockStack: undefined;
   MachineWiseStack: undefined;
   BankCashLedger: undefined;
+  BankCashLedgerDetail: {
+    accountId: string;
+    title: string;
+  };
   PartyLedger: undefined;
+  PartyLedgerDetail: {
+    accountId: string;
+    title: string;
+  };
+  LedgerDetails: {
+    accountId: string;
+    title: string;
+    is_bankcash?: string;
+  };
   About: undefined;
   Contact: undefined;
 };

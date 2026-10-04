@@ -104,8 +104,10 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    borderTopWidth: 3,
+    borderTopColor: Colors.primaryLight,
   },
-  headerTitle: { fontSize: Typography.fontSizes.xl, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
+  headerTitle: { fontSize: Typography.fontSizes.xl, fontWeight: Typography.fontWeights.bold, color: Colors.primary },
   content: { padding: Spacing.md },
   userCard: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md },
   avatar: {

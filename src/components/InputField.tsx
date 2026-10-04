@@ -44,14 +44,14 @@ export const InputField: React.FC<InputFieldProps> = ({
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.inputWrapper, error ? styles.inputError : null, !editable && styles.inputDisabled]}>
         {leftIcon ? (
-          <Icon name={leftIcon} size={20} color={Colors.gray400} style={styles.leftIcon} />
+          <Icon name={leftIcon} size={20} color={Colors.primaryLight} style={styles.leftIcon} />
         ) : null}
         <TextInput
           style={[styles.input, leftIcon ? styles.inputWithLeft : null]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={Colors.gray400}
+          placeholderTextColor={Colors.primaryLight}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -65,7 +65,7 @@ export const InputField: React.FC<InputFieldProps> = ({
             activeOpacity={0.7}
             disabled={!editable}
           >
-            <Icon name={rightIcon} size={20} color={Colors.gray400} />
+            <Icon name={rightIcon} size={20} color={Colors.primaryLight} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -90,11 +90,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.hairline,
     minHeight: 50,
   },
   inputDisabled: {
-    backgroundColor: Colors.gray100,
+    backgroundColor: Colors.lightWash,
   },
   inputError: {
     borderColor: Colors.danger,

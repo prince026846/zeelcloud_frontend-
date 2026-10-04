@@ -206,10 +206,14 @@ export const CreateSalesOrderScreen: React.FC = () => {
       setLoadingMaster(false);
       return;
     }
+
+    const activeCompany = companies.find((c) => c.recordId === selectedCompanyId);
+    const shouldFetchAllParties = activeCompany ? activeCompany.isCommon : true;
+
     setLoadingMaster(true);
     Promise.all([
       itemsApi.getAll(compId),
-      accountsApi.getAll(compId).catch(() => [] as AccountParty[]),
+      accountsApi.getAll(shouldFetchAllParties ? undefined : compId).catch(() => [] as AccountParty[]),
     ])
       .then(([fetchedItems, fetchedParties]) => {
         setMasterItems(fetchedItems);
@@ -443,7 +447,7 @@ export const CreateSalesOrderScreen: React.FC = () => {
               searchable
               subtitleFor={partySubtitle}
             />
-            {selectedParty && (selectedParty.address || selectedParty.gstNo) ? (
+            {selectedParty && (!!selectedParty.address || !!selectedParty.gstNo) ? (
               <View style={styles.partyMetaBox}>
                 {selectedParty.address ? (
                   <View style={styles.partyMetaRow}>
@@ -930,7 +934,7 @@ const styles = StyleSheet.create({
   },
   toggleBtnActive: {
     backgroundColor: Colors.surface,
-    shadowColor: '#000',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 1,

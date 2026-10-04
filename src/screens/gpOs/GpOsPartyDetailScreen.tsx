@@ -179,7 +179,7 @@ export const GpOsPartyDetailScreen: React.FC<Props> = ({ navigation, route }) =>
               activeOpacity={0.8}
               style={styles.waIcon}
             >
-              <Icon name="file-pdf-box" size={24} color={Colors.gradientStart} />
+              <Icon name="file-pdf-box" size={24} color={Colors.pdf} />
             </TouchableOpacity>
           </View>
 
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   ogParty: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
   addressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm, marginTop: 2 },
   ogAddress: { flex: 1, fontSize: 10, fontStyle: 'italic', color: Colors.textSecondary },
-  waIcon: { padding: 4, backgroundColor: Colors.successLight, borderRadius: 20 },
+  waIcon: { padding: 4, backgroundColor: Colors.whatsappLight, borderRadius: 20 },
   ogLine: { fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.semiBold, color: Colors.textPrimary, marginTop: 2 },
   ogTotal: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.gradientEnd },
   ogSub: { fontSize: Typography.fontSizes.xs, color: Colors.textSecondary, marginTop: 2 },

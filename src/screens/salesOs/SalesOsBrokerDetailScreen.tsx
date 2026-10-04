@@ -158,7 +158,9 @@ export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }
         <View style={styles.summaryTopRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.ogParty} numberOfLines={1}>{broker.name}</Text>
-            {broker.phone && <Text style={styles.ogAddress} numberOfLines={1}>{broker.phone}</Text>}
+            {broker.phone && broker.phone.trim().length > 0 ? (
+              <Text style={styles.ogAddress} numberOfLines={1}>{broker.phone}</Text>
+            ) : null}
             {filter?.fromDate || filter?.toDate ? (
               <Text style={styles.ogLine}>
                 From {toDDMMYY(filter.fromDate)} To {toDDMMYY(filter.toDate)}
@@ -170,7 +172,7 @@ export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }
             activeOpacity={0.8}
             style={styles.waIcon}
           >
-            <Icon name="file-pdf-box" size={24} color={Colors.gradientStart} />
+            <Icon name="file-pdf-box" size={24} color={Colors.pdf} />
           </TouchableOpacity>
         </View>
 
@@ -307,7 +309,7 @@ const styles = StyleSheet.create({
   partyContainer: { marginBottom: Spacing.md },
   tableBleed: { backgroundColor: Colors.surface },
   rowSelected: { backgroundColor: Colors.purple100 },
-  partyHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 0, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: '#f9f9f9', borderBottomWidth: 1, borderBottomColor: Colors.gray200 },
+  partyHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 0, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: Colors.lightWash, borderBottomWidth: 1, borderBottomColor: Colors.gray200 },
   partyTitle: { fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary, textTransform: 'uppercase' },
   partyFooter: { alignItems: 'flex-end', paddingHorizontal: Spacing.md, marginTop: Spacing.xs },
   partyFooterText: { fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },

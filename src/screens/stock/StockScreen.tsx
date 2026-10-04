@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   label: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
   desc: { fontSize: Typography.fontSizes.xs, color: Colors.textSecondary, marginTop: 1 },
   comingSoonBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: Colors.lightWash,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   comingSoonText: {
     fontSize: 10,
     fontWeight: Typography.fontWeights.bold,
-    color: '#B45309',
+    color: Colors.primary,
   },
   stats: { fontSize: Typography.fontSizes.sm, color: Colors.textSecondary, fontWeight: Typography.fontWeights.medium, marginTop: 6 },
 });

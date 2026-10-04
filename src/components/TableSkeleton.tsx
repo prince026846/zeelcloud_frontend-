@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   headerRow: {
-    backgroundColor: '#FDF6DB',
+    backgroundColor: Colors.lightWash,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
     paddingVertical: 6,

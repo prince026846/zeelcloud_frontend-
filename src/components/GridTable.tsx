@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   headerRow: {
-    backgroundColor: '#FDF6DB', // OG Yellow200Accent header strip
+    backgroundColor: Colors.warningLight,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
     paddingVertical: 6,

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Zeel Cloud",
     "slug": "ZeelCloudRN",
-    "version": "2.0.0",
+    "version": "8.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,6 +16,7 @@
     },
     "android": {
       "package": "com.zeel.linfotech",
+      "versionCode": 38,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",

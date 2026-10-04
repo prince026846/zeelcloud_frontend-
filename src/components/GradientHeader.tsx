@@ -12,7 +12,7 @@ interface GradientHeaderProps {
   rightElement?: ReactNode;
 }
 
-// App header — white surface, dark indigo title, light indigo accents.
+/** App header — white surface, brand title, light-purple accent strip. */
 export const GradientHeader: React.FC<GradientHeaderProps> = ({
   title,
   subtitle,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: Typography.fontSizes.sm,
-    color: Colors.primaryLight,
+    color: Colors.textSecondary,
     marginTop: 2,
     textAlign: 'center',
     fontWeight: Typography.fontWeights.medium,

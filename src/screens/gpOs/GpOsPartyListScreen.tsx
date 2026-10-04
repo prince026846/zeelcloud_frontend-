@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#FDF6DB',
+    backgroundColor: Colors.lightWash,
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -187,6 +187,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  callBtn: { borderColor: Colors.danger, backgroundColor: Colors.dangerLight },
-  waBtn: { borderColor: '#25D366', backgroundColor: '#E8F9EF' },
+  callBtn: { borderColor: Colors.call, backgroundColor: Colors.callLight },
+  waBtn: { borderColor: Colors.whatsapp, backgroundColor: Colors.whatsappLight },
 });

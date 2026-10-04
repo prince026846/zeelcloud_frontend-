@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ZIcon as Icon } from '../components/ZIcon';
 import { Colors, Typography } from '../theme';
 
-// Shared bottom-tab styling — white bar, dark indigo active, light indigo idle.
+/** Bottom tabs — white bar, dark purple active, light purple idle. */
 export const useBaseTabScreenOptions = (): BottomTabNavigationOptions => {
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom > 0 ? insets.bottom : 10;
@@ -14,15 +14,20 @@ export const useBaseTabScreenOptions = (): BottomTabNavigationOptions => {
     tabBarInactiveTintColor: Colors.primaryLight,
     tabBarStyle: {
       backgroundColor: Colors.surface,
-      borderTopColor: Colors.border,
+      borderTopColor: Colors.hairline,
       borderTopWidth: 1,
       height: 56 + bottomInset,
       paddingTop: 8,
       paddingBottom: bottomInset,
+      elevation: 8,
+      shadowColor: Colors.primary,
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: -2 },
     },
     tabBarLabelStyle: {
       fontSize: 11,
-      fontWeight: Typography.fontWeights.medium,
+      fontWeight: Typography.fontWeights.semiBold,
       marginTop: 2,
     },
   };

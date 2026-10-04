@@ -88,7 +88,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.logoSection}>
           <View style={styles.logoRow}>
             <View style={styles.logoIcon}>
-              <Icon name="cloud" size={30} color={Colors.primary} />
+              <Icon name="cloud" size={30} color={Colors.white} />
               <View style={styles.logoArrow}>
                 <Icon name="trending-up" size={14} color={Colors.success} />
               </View>
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontSize: Typography.fontSizes.xs,
-    color: Colors.textSecondary,
+    color: Colors.primaryLight,
     marginTop: 4,
     letterSpacing: 0.5,
   },
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     fontSize: Typography.fontSizes.base,
-    color: Colors.textSecondary,
+    color: Colors.primaryLight,
     marginBottom: Spacing.xl,
   },
   form: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.hairline,
   },
   rowBetween: {
     flexDirection: 'row',

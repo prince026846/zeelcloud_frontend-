@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Switch } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Switch, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ZIcon as Icon } from '../../components/ZIcon';
@@ -12,8 +12,10 @@ import { formatCurrency } from '../../utils/currency';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../theme';
 import type { AppStackParamList, BankAccount } from '../../types';
 
-const maskAccount = (accountNo?: string) =>
-  accountNo ? `•••• ${accountNo.slice(-4)}` : 'Cash Account';
+const getAccountSubtitle = (name: string, accountNo?: string) => {
+  if (accountNo) return `•••• ${accountNo.slice(-4)}`;
+  return /cash/i.test(name) ? 'Cash Account' : 'Bank Account';
+};
 
 export const BankCashLedgerScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
@@ -35,19 +37,27 @@ export const BankCashLedgerScreen: React.FC = () => {
 
   const renderItem = ({ item }: { item: BankAccount }) => {
     const positive = item.amount >= 0;
+    const isCash = /cash/i.test(item.name);
     return (
-      <View style={styles.card}>
+      <TouchableOpacity 
+        style={styles.card}
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('BankCashLedgerDetail', { 
+          accountId: item.id, 
+          title: item.name, 
+        })}
+      >
         <View style={[styles.icon, { backgroundColor: positive ? Colors.successLight : Colors.dangerLight }]}>
-          <Icon name="bank-outline" size={22} color={positive ? Colors.success : Colors.danger} />
+          <Icon name={isCash ? 'cash' : 'bank-outline'} size={22} color={positive ? Colors.success : Colors.danger} />
         </View>
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.acc}>{maskAccount(item.accountNo)}</Text>
+          <Text style={styles.acc}>{getAccountSubtitle(item.name, item.accountNo)}</Text>
         </View>
         <Text style={[styles.balance, { color: positive ? Colors.success : Colors.danger }]}>
           {formatCurrency(item.amount)}
         </Text>
-      </View>
+      </TouchableOpacity>
     );
   };
 

@@ -44,7 +44,14 @@ export const PartyLedgerScreen: React.FC = () => {
   const renderItem = ({ item }: { item: PartyLedgerAccount }) => {
     const positive = item.balance >= 0;
     return (
-      <View style={styles.card}>
+      <TouchableOpacity 
+        style={styles.card} 
+        activeOpacity={0.7}
+        onPress={() => navigation.navigate('PartyLedgerDetail', { 
+          accountId: item.id, 
+          title: item.name, 
+        })}
+      >
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{getInitials(item.name)}</Text>
         </View>
@@ -55,17 +62,17 @@ export const PartyLedgerScreen: React.FC = () => {
             onPress={() => Alert.alert('Call', `Calling ${item.phone}`)}
             activeOpacity={0.7}
           >
-            <Icon name="phone-outline" size={12} color={Colors.textSecondary} />
+            <Icon name="phone-outline" size={12} color={Colors.call} />
             <Text style={styles.phone}>{item.phone}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.balanceBox}>
-          <Text style={[styles.balance, { color: positive ? Colors.success : Colors.danger }]}>
+          <Text style={[styles.balance, { color: positive ? Colors.moneyIn : Colors.moneyOut }]}>
             {formatCurrency(Math.abs(item.balance))}
           </Text>
           <Text style={styles.drcr}>{item.balance === 0 ? '—' : positive ? 'Dr' : 'Cr'}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

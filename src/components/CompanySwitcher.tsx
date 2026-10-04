@@ -106,8 +106,8 @@ const styles = StyleSheet.create({
   pillLabel: { fontSize: Typography.fontSizes.xs, color: Colors.textMuted },
   pillName: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
 
-  backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.5)', justifyContent: 'center', paddingHorizontal: Spacing.lg },
-  sheet: { backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.md, maxHeight: '70%' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(66,64,150,0.45)', justifyContent: 'center', paddingHorizontal: Spacing.lg },
+  sheet: { backgroundColor: Colors.surface, borderRadius: BorderRadius.lg, padding: Spacing.md, maxHeight: '70%', borderWidth: 1, borderColor: Colors.hairline },
   sheetTitle: {
     fontSize: Typography.fontSizes.md,
     fontWeight: Typography.fontWeights.bold,
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 11,
-    backgroundColor: Colors.gray100,
+    backgroundColor: Colors.lightWash,
     justifyContent: 'center',
     alignItems: 'center',
   },

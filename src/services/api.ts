@@ -288,7 +288,7 @@ export const authApi = {
       isSubuser: profileData.is_subuser === true,
       parentUserId: typeof profileData.parent_user_id === 'number' ? profileData.parent_user_id : null,
       allowedForms,
-      isSalesOrderCreationAllowed: profileData.is_subuser !== true || profile?.is_sales_order_creation_allowed === true || profileData.is_sales_order_creation_allowed === true,
+      isSalesOrderCreationAllowed: profile?.is_sales_order_creation_allowed === true || profileData.is_sales_order_creation_allowed === true,
     };
   },
   getSubUsers: async (_token: string): Promise<SubUser[]> => {
@@ -737,6 +737,22 @@ export const ledgerApi = {
       narration: typeof row.vv_narration === 'string' ? row.vv_narration : undefined,
     }));
   },
+  getLedgerDetails: async (
+    id: string,
+    params: { is_bankcash?: string; company?: number; from_date?: string; to_date?: string }
+  ): Promise<{ data: any[]; openingBalance: number }> => {
+    const urlParams = new URLSearchParams();
+    if (params.company && params.company > 0) urlParams.set('company', String(params.company));
+    if (params.is_bankcash) urlParams.set('is_bankcash', params.is_bankcash);
+    if (params.from_date) urlParams.set('from_date', params.from_date);
+    if (params.to_date) urlParams.set('to_date', params.to_date);
+    const query = urlParams.toString() ? `?${urlParams.toString()}` : '';
+    const response = await apiFetch<{ data: any[]; opening_balance?: number }>(`/ledger/${id}${query}`);
+    return {
+      data: response.data || [],
+      openingBalance: response.opening_balance || 0,
+    };
+  },
   getBankAccounts: async (companyId?: string): Promise<BankAccount[]> => {
     const params = new URLSearchParams();
     if (companyId) params.set('company', companyId);
@@ -838,8 +854,9 @@ const mapAccountParty = (row: Record<string, unknown>): AccountParty => {
 
 export const accountsApi = {
   getAll: async (companyId?: string): Promise<AccountParty[]> => {
-    // Do not pass companyId filter to accounts master, as they are global (vn_company_id = 0)
-    const payload = await apiFetch<unknown>(`/accounts/`);
+    // If companyId is provided, append it to filter the accounts on the backend.
+    const url = companyId ? `/accounts/?company=${companyId}` : `/accounts/`;
+    const payload = await apiFetch<unknown>(url);
     return extractDataArray(payload).map(mapAccountParty);
   },
 };

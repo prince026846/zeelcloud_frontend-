@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 36,
     borderRadius: BorderRadius.md,
-    backgroundColor: '#25D366',
+    backgroundColor: Colors.pdf,
     justifyContent: 'center',
     alignItems: 'center',
   },

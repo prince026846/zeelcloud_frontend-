@@ -15,19 +15,19 @@ import { generateLedgerPdf } from '../../utils/ledgerPdfGenerator';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../theme';
 import type { AppStackParamList, NormalizedLedgerTransaction } from '../../types';
 
-type LedgerDetailsRouteProp = RouteProp<AppStackParamList, 'LedgerDetails'>;
+type PartyLedgerDetailRouteProp = RouteProp<AppStackParamList, 'PartyLedgerDetail'>;
 
 /**
- * Non-destructive cleaner for backend vv_trans_details string.
- * Strips empty label prefixes like "Memo No : ," while preserving real values.
+ * Non-destructive cleaner for backend vv_trans_details in party trade transactions.
+ * Strips empty label prefixes like "Memo No : ," while preserving invoice/bill numbers.
  */
 const cleanTransDetails = (raw?: string | null): string => {
   if (!raw || typeof raw !== 'string') return '';
   let str = raw.trim();
   if (!str) return '';
 
-  // 1. Remove empty labels followed by comma or end of string, e.g. "Memo No : ," or "Chq. No : ,"
-  str = str.replace(/(?:Memo|Chq|Bank|Desc)\s*No?\s*:\s*(?=,|$)/gi, '');
+  // 1. Remove empty labels followed by comma or end of string, e.g. "Memo No : ," or "Bill No : ,"
+  str = str.replace(/(?:Memo|Chq|Bank|Desc|Bill)\s*No?\s*:\s*(?=,|$)/gi, '');
 
   // 2. Clean up multiple commas and extra spaces around commas
   str = str.replace(/\s*,\s*,+/g, ', ');
@@ -57,9 +57,9 @@ const formatLedgerBalance = (balance: number): { text: string; isZero: boolean; 
   };
 };
 
-export const LedgerDetailsScreen: React.FC = () => {
-  const route = useRoute<LedgerDetailsRouteProp>();
-  const { accountId, title, is_bankcash } = route.params;
+export const PartyLedgerDetailScreen: React.FC = () => {
+  const route = useRoute<PartyLedgerDetailRouteProp>();
+  const { accountId, title } = route.params;
   
   const { selectedCompany } = useCompanyStore();
   const lastSynced = useSyncStore((s) => s.lastSynced);
@@ -71,7 +71,7 @@ export const LedgerDetailsScreen: React.FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
-  // Default dates using local date to prevent timezone backward shift
+  // Default dates using local calendar date
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
     const y = d.getFullYear();
@@ -93,13 +93,13 @@ export const LedgerDetailsScreen: React.FC = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch API
+  // Fetch API for Party Ledger (is_bankcash: '')
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     
     ledgerApi.getLedgerDetails(accountId, {
-      is_bankcash,
+      is_bankcash: '',
       company: isCommonCompany ? undefined : selectedCompany?.id ? Number(selectedCompany.id) : undefined,
       from_date: fromDate,
       to_date: toDate,
@@ -115,9 +115,9 @@ export const LedgerDetailsScreen: React.FC = () => {
       });
       
     return () => { mounted = false; };
-  }, [accountId, is_bankcash, isCommonCompany, selectedCompany?.id, fromDate, toDate]);
+  }, [accountId, isCommonCompany, selectedCompany?.id, fromDate, toDate]);
 
-  // Normalize API data once, computing running balance from opening balance
+  // Normalize trade transactions for Party Ledger
   const normalizedData = useMemo<NormalizedLedgerTransaction[]>(() => {
     let running = openingBalance;
     return data.map((item, index) => {
@@ -126,19 +126,19 @@ export const LedgerDetailsScreen: React.FC = () => {
       const isDr = dr > 0;
       const amount = isDr ? dr : cr;
       
-      // Running balance formula: previous + debit - credit
+      // Standard running balance formula: previous + debit - credit
       running = running + (dr - cr);
 
       const displayDate = item.vd_date ? toDDMMYYYY(String(item.vd_date)) : '';
-      const voucherType = item.vv_type ? String(item.vv_type).trim() : '—';
+      const voucherType = item.vv_type ? String(item.vv_type).trim() : '';
       const voucherNo = String(item.vn_vch_no ?? item.vn_no ?? '').trim();
       const particulars = String(item.vv_perticular || item.vv_details || item.vv_party_name || '—').trim();
       
-      // Clean transaction details
+      // Clean transaction details (invoice / bill / transfer / cheque)
       const rawDetails = item.vv_trans_details || (item.vv_details && item.vv_details !== particulars ? item.vv_details : '') || '';
       const transDetails = cleanTransDetails(rawDetails);
 
-      const searchKey = `${voucherType} ${displayDate} ${voucherNo} ${particulars} ${transDetails} ${amount} ${dr} ${cr}`.toLowerCase();
+      const searchKey = `${voucherType} ${displayDate} ${item.vd_date || ''} ${voucherNo} ${particulars} ${transDetails} ${amount} ${dr} ${cr} ${formatCurrency(amount)}`.toLowerCase();
 
       return {
         id: String(item.vn_transaction_id ?? item.id ?? index.toString()),
@@ -233,7 +233,9 @@ export const LedgerDetailsScreen: React.FC = () => {
         {/* LINE 1: [Voucher Type]  [Date]  [Voucher No in Red]    [Amount Dr/Cr] */}
         <View style={styles.itemRowTop}>
           <View style={styles.leftMetaContainer}>
-            <Text style={styles.itemVchType}>{item.voucherType}</Text>
+            {item.voucherType ? (
+              <Text style={styles.itemVchType}>{item.voucherType}</Text>
+            ) : null}
             <Text style={styles.itemDate}>{item.displayDate}</Text>
             {item.voucherNo ? (
               <Text style={styles.itemVchNo}>{item.voucherNo}</Text>
@@ -244,7 +246,7 @@ export const LedgerDetailsScreen: React.FC = () => {
           </Text>
         </View>
 
-        {/* LINE 2: [Particular / Account Name]                 [Running Balance] */}
+        {/* LINE 2: [Particular / Head Name]                    [Running Balance] */}
         <View style={styles.itemRowBottom}>
           <Text style={styles.itemParticulars} numberOfLines={2}>
             {item.particulars}
@@ -254,7 +256,7 @@ export const LedgerDetailsScreen: React.FC = () => {
           </Text>
         </View>
 
-        {/* LINE 3: [Transaction Details] (Conditional) */}
+        {/* LINE 3: [Bill No / Trade Details] (Conditional) */}
         {item.hasTransDetails ? (
           <View style={styles.itemRowDetails}>
             <Text style={styles.itemTransDetails} numberOfLines={3}>
@@ -291,7 +293,7 @@ export const LedgerDetailsScreen: React.FC = () => {
         
         <View style={styles.searchRow}>
           <View style={{ flex: 1 }}>
-            <SearchBar value={search} onChangeText={setSearch} placeholder="Search Account, Date, Amount, Chq.N..." />
+            <SearchBar value={search} onChangeText={setSearch} placeholder="Search Account, Date, Amount, Bill No..." />
           </View>
           <TouchableOpacity style={styles.iconButton} onPress={handleGeneratePdf} activeOpacity={0.7}>
             <Icon name="whatsapp" size={24} color={Colors.success} />
@@ -472,7 +474,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    flexShrink: 1,
+    flex: 1,
+    marginRight: Spacing.sm,
   },
   itemVchType: {
     fontSize: Typography.fontSizes.sm,
@@ -486,16 +489,18 @@ const styles = StyleSheet.create({
   },
   itemVchNo: {
     fontSize: Typography.fontSizes.sm,
-    color: '#E05656',
+    color: Colors.danger,
     fontWeight: '700',
   },
   itemAmount: {
     fontSize: Typography.fontSizes.sm,
     fontWeight: '700',
+    textAlign: 'right',
+    flexShrink: 0,
   },
   itemRowBottom: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   itemParticulars: {
@@ -509,6 +514,8 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSizes.sm,
     color: Colors.textPrimary,
     fontWeight: '500',
+    textAlign: 'right',
+    flexShrink: 0,
   },
   itemRowDetails: {
     marginTop: 4,

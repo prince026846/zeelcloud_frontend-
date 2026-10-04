@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   badge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: Colors.lightWash,
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: BorderRadius.full,
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: Typography.fontSizes.sm,
     fontWeight: Typography.fontWeights.bold,
-    color: '#B45309',
+    color: Colors.primary,
     letterSpacing: 0.3,
   },
   title: {

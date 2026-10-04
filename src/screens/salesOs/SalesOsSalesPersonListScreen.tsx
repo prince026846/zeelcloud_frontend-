@@ -62,7 +62,7 @@ export const SalesOsSalesPersonListScreen: React.FC<Props> = ({ navigation, rout
             <Text style={styles.amount}>{formatCurrency(item.totalOs)}</Text>
           </View>
           <Text style={styles.meta}>{item.partyCount} parties</Text>
-          {item.target && (
+          {item.target != null && item.target > 0 ? (
             <>
               <View style={styles.progressBar}>
                 <View style={[styles.progressFill, { width: `${achievePct}%` }]} />
@@ -71,7 +71,7 @@ export const SalesOsSalesPersonListScreen: React.FC<Props> = ({ navigation, rout
                 {formatPercent(achievePct)}% of target ({formatCurrency(item.target)})
               </Text>
             </>
-          )}
+          ) : null}
         </View>
       </TouchableOpacity>
     );

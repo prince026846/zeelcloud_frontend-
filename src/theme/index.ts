@@ -1,29 +1,49 @@
+/**
+ * Zeel Cloud design system
+ *
+ * Brand (logo) — use for chrome, CTAs, focus, brand marks:
+ *   #424096 dark purple | #9C8DCE light purple | #FFFFFF white
+ *   #E6E6E6 hairline (sparingly)
+ *
+ * Semantic — meaning first (money, status, errors):
+ *   success green | danger red | warning amber
+ *
+ * Action icons — recognizable brand/meaning colors:
+ *   WhatsApp green | call green | PDF red
+ *
+ * Neutrals — readable body UI (not forced to brand purple)
+ */
 export const Colors = {
-  // Brand trio (logo) — use each deliberately, not as a blend
-  // #424096 dark indigo | #9C8DCE light indigo | #FFFFFF white
+  // ── Brand (logo) ────────────────────────────────────────────
   primary: '#424096',
   primaryDark: '#2D2B6B',
   primaryLight: '#9C8DCE',
+  white: '#FFFFFF',
+  hairline: '#E6E6E6',
 
-  // Legacy aliases (solid fills only — do not blend these in gradients)
   gradientStart: '#424096',
   gradientEnd: '#9C8DCE',
 
-  // Canvas: soft lavender wash so light indigo shows without darkening the app
-  background: '#EEEAF6',
+  // Soft brand washes (same hue + alpha)
+  primaryWash: '#42409614',
+  primaryWashStrong: '#42409626',
+  lightWash: '#9C8DCE22',
+  lightWashStrong: '#9C8DCE40',
+
+  // Canvas — soft lavender tint, white cards on top
+  background: '#F3F0FA',
   surface: '#FFFFFF',
 
-  // Text
+  // Text — readable neutrals (indigo-tinted, not washed purple)
   textPrimary: '#2A2758',
   textSecondary: '#6B648F',
   textMuted: '#9A93B5',
   textWhite: '#FFFFFF',
 
-  // Borders — indigo-tinted neutrals
-  border: '#D8D2E8',
+  border: '#E6E6E6',
   borderFocus: '#424096',
 
-  // Status (unchanged semantics)
+  // ── Semantic (do not remap to brand) ────────────────────────
   success: '#10B981',
   successLight: '#D1FAE5',
   danger: '#EF4444',
@@ -33,26 +53,36 @@ export const Colors = {
   info: '#424096',
   infoLight: '#E8E3F4',
 
+  // Money direction aliases
+  moneyIn: '#10B981',
+  moneyOut: '#EF4444',
+
+  // ── Action / third-party icon accents ───────────────────────
+  whatsapp: '#25D366',
+  whatsappLight: '#E8F9EF',
+  call: '#16A34A',
+  callLight: '#DCFCE7',
+  pdf: '#DC2626',
+  pdfLight: '#FEE2E2',
+
   // Neutral
   neutral: '#6B648F',
   neutralLight: '#F3F0FA',
 
-  // Drawer / chrome
   drawerBg: '#424096',
+  shadow: '#424096',
 
-  shadow: '#000000',
-
-  // Accent scale (monochrome indigo)
+  // Accent scale (brand)
   purple100: '#E8E3F4',
   purple200: '#D4CBE8',
   purple500: '#9C8DCE',
   purple600: '#424096',
   purple700: '#2D2B6B',
 
-  blue500: '#9C8DCE',
-  blue600: '#424096',
+  blue500: '#3B82F6',
+  blue600: '#2563EB',
 
-  // Gray scale (slightly cool-indigo so UI stays on-brand)
+  // Cool-indigo gray scale (readable UI neutrals)
   gray50: '#F7F5FB',
   gray100: '#F0ECF7',
   gray200: '#E2DCEC',

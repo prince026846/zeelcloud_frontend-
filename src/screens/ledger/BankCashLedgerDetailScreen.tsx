@@ -15,10 +15,10 @@ import { generateLedgerPdf } from '../../utils/ledgerPdfGenerator';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../theme';
 import type { AppStackParamList, NormalizedLedgerTransaction } from '../../types';
 
-type LedgerDetailsRouteProp = RouteProp<AppStackParamList, 'LedgerDetails'>;
+type BankCashLedgerDetailRouteProp = RouteProp<AppStackParamList, 'BankCashLedgerDetail'>;
 
 /**
- * Non-destructive cleaner for backend vv_trans_details string.
+ * Non-destructive cleaner for backend vv_trans_details in bank/cash transactions.
  * Strips empty label prefixes like "Memo No : ," while preserving real values.
  */
 const cleanTransDetails = (raw?: string | null): string => {
@@ -57,9 +57,9 @@ const formatLedgerBalance = (balance: number): { text: string; isZero: boolean; 
   };
 };
 
-export const LedgerDetailsScreen: React.FC = () => {
-  const route = useRoute<LedgerDetailsRouteProp>();
-  const { accountId, title, is_bankcash } = route.params;
+export const BankCashLedgerDetailScreen: React.FC = () => {
+  const route = useRoute<BankCashLedgerDetailRouteProp>();
+  const { accountId, title } = route.params;
   
   const { selectedCompany } = useCompanyStore();
   const lastSynced = useSyncStore((s) => s.lastSynced);
@@ -93,13 +93,13 @@ export const LedgerDetailsScreen: React.FC = () => {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch API
+  // Fetch API for Bank/Cash Ledger (is_bankcash: '1')
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     
     ledgerApi.getLedgerDetails(accountId, {
-      is_bankcash,
+      is_bankcash: '1',
       company: isCommonCompany ? undefined : selectedCompany?.id ? Number(selectedCompany.id) : undefined,
       from_date: fromDate,
       to_date: toDate,
@@ -115,7 +115,7 @@ export const LedgerDetailsScreen: React.FC = () => {
       });
       
     return () => { mounted = false; };
-  }, [accountId, is_bankcash, isCommonCompany, selectedCompany?.id, fromDate, toDate]);
+  }, [accountId, isCommonCompany, selectedCompany?.id, fromDate, toDate]);
 
   // Normalize API data once, computing running balance from opening balance
   const normalizedData = useMemo<NormalizedLedgerTransaction[]>(() => {
@@ -134,7 +134,7 @@ export const LedgerDetailsScreen: React.FC = () => {
       const voucherNo = String(item.vn_vch_no ?? item.vn_no ?? '').trim();
       const particulars = String(item.vv_perticular || item.vv_details || item.vv_party_name || '—').trim();
       
-      // Clean transaction details
+      // Clean transaction details (cheque, memo, bank, desc)
       const rawDetails = item.vv_trans_details || (item.vv_details && item.vv_details !== particulars ? item.vv_details : '') || '';
       const transDetails = cleanTransDetails(rawDetails);
 
@@ -198,7 +198,7 @@ export const LedgerDetailsScreen: React.FC = () => {
     return (
       <View style={styles.listHeaderRow}>
         <View style={styles.listHeaderTop}>
-          <Text style={styles.listHeaderParty}>Party Name</Text>
+          <Text style={styles.listHeaderParty}>Account Name</Text>
           <Text style={styles.listHeaderDrCr}>DR/CR</Text>
         </View>
         <View style={styles.openingBalanceRow}>

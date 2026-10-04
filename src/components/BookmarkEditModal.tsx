@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: Typography.fontSizes.base, color: Colors.textPrimary, fontWeight: Typography.fontWeights.medium },
   comingSoonHint: {
     fontSize: Typography.fontSizes.xs,
-    color: '#B45309',
+    color: Colors.primary,
     fontWeight: Typography.fontWeights.semiBold,
     marginTop: 2,
   },

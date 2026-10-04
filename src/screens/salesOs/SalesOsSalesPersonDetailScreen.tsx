@@ -147,7 +147,7 @@ export const SalesOsSalesPersonDetailScreen: React.FC<Props> = ({ navigation, ro
             activeOpacity={0.8}
             style={styles.waIcon}
           >
-            <Icon name="file-pdf-box" size={24} color={Colors.gradientStart} />
+            <Icon name="file-pdf-box" size={24} color={Colors.pdf} />
           </TouchableOpacity>
         </View>
 
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   partyContainer: { marginBottom: Spacing.md },
   tableBleed: { backgroundColor: Colors.surface },
   rowSelected: { backgroundColor: Colors.purple100 },
-  partyHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 0, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: '#f9f9f9', borderBottomWidth: 1, borderBottomColor: Colors.gray200 },
+  partyHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 0, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: Colors.lightWash, borderBottomWidth: 1, borderBottomColor: Colors.gray200 },
   partyTitle: { fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary, textTransform: 'uppercase' },
   partyFooter: { alignItems: 'flex-end', paddingHorizontal: Spacing.md, marginTop: Spacing.xs },
   partyFooterText: { fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },

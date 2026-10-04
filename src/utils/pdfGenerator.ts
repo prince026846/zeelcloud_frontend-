@@ -115,7 +115,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
     if (withInterest) {
       return `
               <tr>
-                <td colspan="${colCount - 2}" class="right" style="font-weight: bold; color: ${Colors.primary}; padding-top: 6px; padding-bottom: 6px;">Party Total</td>
+                <td colspan="${colCount - 2}" class="right" style="font-weight: bold; color: #1a1a1a; padding-top: 6px; padding-bottom: 6px;">Party Total</td>
                 <td class="right" style="font-weight: bold; padding-top: 6px; padding-bottom: 6px;">${amount.toFixed(2)}</td>
                 <td></td>
               </tr>
@@ -123,7 +123,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
     }
     return `
               <tr>
-                <td colspan="${colCount - 1}" class="right" style="font-weight: bold; color: ${Colors.primary}; padding-top: 6px; padding-bottom: 6px;">Party Total</td>
+                <td colspan="${colCount - 1}" class="right" style="font-weight: bold; color: #1a1a1a; padding-top: 6px; padding-bottom: 6px;">Party Total</td>
                 <td class="right" style="font-weight: bold; padding-top: 6px; padding-bottom: 6px;">${amount.toFixed(2)}</td>
               </tr>
     `;
@@ -165,7 +165,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
           }
           body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333;
+            color: #1a1a1a;
             font-size: 12px;
             background: #fff;
           }
@@ -176,13 +176,13 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             background: #fff;
           }
           .container {
-            border: 1px solid #333;
+            border: 1px solid #424096;
             padding: 2px;
             width: 100%;
           }
           .header {
             text-align: center;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #424096;
             padding-bottom: 8px;
             position: relative;
           }
@@ -196,7 +196,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
           .company-name {
             font-size: 20px;
             font-weight: bold;
-            color: ${Colors.primary};
+            color: #1a1a1a;
             margin-top: 14px;
             margin-bottom: 4px;
           }
@@ -210,8 +210,8 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             font-size: 13px;
             font-weight: bold;
             text-align: center;
-            border-top: 1px solid #333;
-            border-bottom: 1px solid #333;
+            border-top: 1px solid #424096;
+            border-bottom: 1px solid #424096;
             padding: 8px 0;
           }
           .period-row {
@@ -220,7 +220,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             gap: 8px;
             padding: 8px;
             font-weight: bold;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #424096;
             font-size: 11px;
             flex-wrap: wrap;
           }
@@ -245,10 +245,10 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
           }
           th {
             font-size: 9px;
-            border-top: 1px solid #333;
-            border-bottom: 1px solid #333;
+            border-top: 1px solid #424096;
+            border-bottom: 1px solid #424096;
             padding: 6px 1px;
-            color: ${Colors.primary};
+            color: #1a1a1a;
             word-break: break-word;
             line-height: 1.15;
           }
@@ -279,11 +279,11 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
           .left { text-align: left; }
           .red { color: red; }
           .dotted-line {
-            border-top: 1px dotted #333;
+            border-top: 1px dotted #424096;
             margin: 5px 0;
           }
           .summary-section {
-            background-color: #e6e6e6;
+            background-color: #E6E6E6;
             padding: 8px;
             margin-top: 8px;
           }
@@ -305,7 +305,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             white-space: nowrap;
           }
           .green-header {
-            background-color: #4caf50;
+            background-color: #424096;
             color: white;
             padding: 6px 10px;
             text-align: right;
@@ -313,7 +313,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             font-size: 12px;
           }
           .green-footer {
-            background-color: #4caf50;
+            background-color: #424096;
             color: white;
             padding: 8px 10px;
             display: flex;
@@ -338,7 +338,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             margin-right: 10px;
             width: auto;
           }
-          .border-bottom { border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 4px; }
+          .border-bottom { border-bottom: 1px solid #424096; padding-bottom: 4px; margin-bottom: 4px; }
         </style>
       </head>
       <body>
@@ -384,21 +384,21 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             <tr>
               <td></td>
               <td></td>
-              <td class="right" style="color: ${Colors.primary}">Interest</td>
+              <td class="right" style="color: #1a1a1a; font-weight: bold;">Interest</td>
               <td class="right">${totals.interestAmount.toFixed(2)}</td>
             </tr>
             ` : ''}
             <tr>
               <td></td>
               <td></td>
-              <td class="right" style="color: ${Colors.primary}">${parties && parties.length > 0 ? 'Grand Total' : 'Party Total'}</td>
+              <td class="right" style="color: #1a1a1a; font-weight: bold;">${parties && parties.length > 0 ? 'Grand Total' : 'Party Total'}</td>
               <td class="right">${totals.totalOs.toFixed(2)}</td>
             </tr>
             ${withInterest ? `
             <tr>
               <td></td>
               <td></td>
-              <td class="right" style="color: ${Colors.primary}">Net Amount</td>
+              <td class="right" style="color: #1a1a1a; font-weight: bold;">Net Amount</td>
               <td class="right">${balanceAmount.toFixed(2)}</td>
             </tr>
             ` : ''}
@@ -406,18 +406,18 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
 
           <div class="summary-section">
             <div class="summary-row">
-              <div style="color: ${Colors.primary}; font-weight: bold;">Last Pay.Received</div>
-              <div style="color: ${Colors.primary}; font-weight: bold;">-</div>
-              <div style="color: ${Colors.primary}; font-weight: bold;">-</div>
-              <div style="color: ${Colors.primary}; font-weight: bold; margin-left: auto; margin-right: 20px;">Balance</div>
-              <div style="color: ${Colors.primary}; font-weight: bold;">${balanceAmount.toFixed(2)}</div>
+              <div style="color: #1a1a1a; font-weight: bold;">Last Pay.Received</div>
+              <div style="color: #1a1a1a; font-weight: bold;">-</div>
+              <div style="color: #1a1a1a; font-weight: bold;">-</div>
+              <div style="color: #1a1a1a; font-weight: bold; margin-left: auto; margin-right: 20px;">Balance</div>
+              <div style="color: #1a1a1a; font-weight: bold;">${balanceAmount.toFixed(2)}</div>
             </div>
           </div>
 
           ${totals.selectedBillAmount > 0 ? `
-          <div style="border: 1px solid #4caf50; margin-top: 12px;">
+          <div style="border: 1px solid #424096; margin-top: 12px;">
             <div class="green-header">Bills Total O/s</div>
-            <div style="padding: 10px; background-color: #c8e6c9;">
+            <div style="padding: 10px; background-color: #9C8DCE22;">
               ${withInterest ? `
               <div class="summary-line"><div class="lbl">Bills Interest Amount:</div><span>${totals.interestAmount.toFixed(2)}</span></div>
               <div class="summary-line"><div class="lbl">GST(5%):</div><span>+ ${totals.gst.toFixed(2)}</span></div>

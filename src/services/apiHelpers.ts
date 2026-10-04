@@ -456,12 +456,23 @@ export const mapPartyLedgerAccount = (item: JsonRecord): PartyLedgerAccount => (
   phone: asString(item.vv_mobile),
 });
 
-export const mapBankAccount = (item: JsonRecord, index: number): BankAccount => ({
-  id: String(item.vn_account_id ?? item.id ?? `${asString(item.vv_bank_name)}-${index}`),
-  name: asString(item.vv_party_name) || asString(item.vv_bank_name),
-  accountNo: asString(item.vv_account_no) || undefined,
-  amount: asNumber(item.balance) || asNumber(item.vn_balance),
-});
+export const mapBankAccount = (item: JsonRecord, index: number): BankAccount => {
+  const name = asString(item.vv_party_name) || asString(item.vv_bank_name);
+  let accountNo = asString(item.vv_account_no) || undefined;
+  if (!accountNo) {
+    const match = name.match(/(?:[-:]\s*|\b)(\d{4,20})\b/);
+    if (match) {
+      accountNo = match[1];
+    }
+  }
+
+  return {
+    id: String(item.vn_account_id ?? item.id ?? `${asString(item.vv_bank_name)}-${index}`),
+    name,
+    accountNo,
+    amount: asNumber(item.balance) || asNumber(item.vn_balance),
+  };
+};
 
 export function aggregateStockData(data: JsonRecord[], reportType: StockReportType): JsonRecord[] {
   const map = new Map<string, JsonRecord>();

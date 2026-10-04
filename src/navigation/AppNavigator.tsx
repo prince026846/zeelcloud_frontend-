@@ -11,7 +11,10 @@ import { GpOsStack } from './stacks/GpOsStack';
 import { StockStack } from './stacks/StockStack';
 import { MachineWiseStack } from './stacks/MachineWiseStack';
 import { BankCashLedgerScreen } from '../screens/ledger/BankCashLedgerScreen';
+import { BankCashLedgerDetailScreen } from '../screens/ledger/BankCashLedgerDetailScreen';
 import { PartyLedgerScreen } from '../screens/ledger/PartyLedgerScreen';
+import { PartyLedgerDetailScreen } from '../screens/ledger/PartyLedgerDetailScreen';
+import { LedgerDetailsScreen } from '../screens/ledger/LedgerDetailsScreen';
 import { AboutScreen } from '../screens/AboutScreen';
 import { ContactScreen } from '../screens/ContactScreen';
 import type { AppStackParamList } from '../types';
@@ -33,7 +36,10 @@ export const AppNavigator: React.FC = () => (
     <Stack.Screen name="StockStack" component={StockStack} />
     <Stack.Screen name="MachineWiseStack" component={MachineWiseStack} />
     <Stack.Screen name="BankCashLedger" component={BankCashLedgerScreen} />
+    <Stack.Screen name="BankCashLedgerDetail" component={BankCashLedgerDetailScreen} />
     <Stack.Screen name="PartyLedger" component={PartyLedgerScreen} />
+    <Stack.Screen name="PartyLedgerDetail" component={PartyLedgerDetailScreen} />
+    <Stack.Screen name="LedgerDetails" component={LedgerDetailsScreen} />
     <Stack.Screen name="About" component={AboutScreen} />
     <Stack.Screen name="Contact" component={ContactScreen} />
   </Stack.Navigator>
