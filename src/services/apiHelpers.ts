@@ -60,7 +60,9 @@ export class StaleRequestError extends Error {
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const accountIdAtStart = getActiveAccountId();
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const base = API_BASE_URL.replace(/\/+$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const response = await fetch(`${base}${cleanPath}`, {
     ...init,
     credentials: 'include',
     headers: { ...authHeaders(), ...(init?.headers as Record<string, string> | undefined) },

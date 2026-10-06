@@ -33,7 +33,7 @@ export type BackendTarget = 'local' | 'remote' | 'production';
 export const BACKEND = 'production' as BackendTarget;
 
 const REMOTE_BASE_URL = 'https://shininess-magnifier-fructose.ngrok-free.dev/api/v1';
-const PROD_BASE_URL = 'https://api.zeelinfotech.co.in/api/v1';
+const PROD_BASE_URL = 'https://api.zeelinfotech.co.in/api/v2';
 
 // Only used if auto-detection fails (e.g. a production build). Keep this at the
 // Mac's current LAN IP as a safety net for when scriptURL detection returns
@@ -56,12 +56,13 @@ function detectHost(): string {
 
 export const API_HOST = detectHost();
 
-export const API_BASE_URL =
+export const API_BASE_URL = (
   BACKEND === 'production'
     ? PROD_BASE_URL
     : BACKEND === 'remote'
     ? REMOTE_BASE_URL
-    : `http://${API_HOST}:${BACKEND_PORT}/api/v1`;
+    : `http://${API_HOST}:${BACKEND_PORT}/api/v1`
+).replace(/\/+$/, '');
 
 export const API_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',

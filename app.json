@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "com.zeel.linfotech",
-      "versionCode": 38,
+      "versionCode": 40,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
