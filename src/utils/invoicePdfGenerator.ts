@@ -2,15 +2,16 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { toDDMMYYYY } from './formatDate';
-import type { BillDetail } from '../types';
+import type { BillDetail, Company } from '../types';
 import type { BillModule } from '../components/BillDetailView';
 import { usePdfStore } from '../store/usePdfStore';
 import { useCompanyStore } from '../store/companyStore';
+import { formatPdfFileName } from './pdfFileName';
 import { Colors } from '../theme';
 
-export const generateInvoicePDF = async (detail: BillDetail, module: BillModule, reportType: string = 'Tax Invoice') => {
+export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, reportType: string = 'Tax Invoice', company?: Company | null): string => {
   const money = (n: number | undefined) => (n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
-  const num3 = (n: number | undefined) => (n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  const num3 = (n: number | undefined) => (n || 0).toLocaleString('en-IN', { maximumFractionDigits: 3, minimumFractionDigits: 3 });
   
   const isSales = module === 'sales';
   
@@ -25,7 +26,10 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
     totalWeight += (item.weight || 0);
     totalNos += (item.nos || 0);
     totalQty += (item.qty || 0);
-    totalCut += (item.cut || 0);
+    const cutVal = item.cut != null && item.cut > 0 
+      ? item.cut 
+      : (item.weight != null && item.weight > 0 ? item.weight : (item.taka ? (item.meter || 0) / item.taka : 0));
+    totalCut += cutVal;
   });
 
   const renderNumCell = (valStr: string | number, align: string = 'center', extraClass: string = '') => {
@@ -42,6 +46,9 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
   const getRows = () => {
     const rows = detail.items.map((item) => {
       if (reportType === 'Multi GST Tax Invoice' && isSales) {
+        const itemRate = item.rate != null && item.rate > 0 
+          ? item.rate 
+          : (item.amount / ((item.meter || item.weight) || 1));
         return `
           <tr>
             <td class="left">${item.name || ''}</td>
@@ -54,25 +61,34 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             ${renderNumCell(item.sgstRate ? num3(item.sgstRate) : '0.00')}
             ${renderNumCell(item.cgstRate ? num3(item.cgstRate) : '0.00')}
             ${renderNumCell(item.igstRate ? num3(item.igstRate) : '0.00')}
-            ${renderNumCell(money(item.amount / ((item.meter || item.weight) || 1)), 'right')}
+            ${renderNumCell(money(itemRate), 'right')}
             ${renderNumCell(money(item.amount), 'right', 'amount')}
           </tr>
         `;
       } else if (isSales) {
+        const itemCut = item.cut != null && item.cut > 0 
+          ? item.cut 
+          : (item.weight != null && item.weight > 0 ? item.weight : (item.taka ? (item.meter || 0) / item.taka : 0));
+        const itemRate = item.rate != null && item.rate > 0 
+          ? item.rate 
+          : (item.taka ? item.amount / item.taka : (item.amount / ((item.meter || item.weight) || 1)));
+
         return `
           <tr>
             <td class="left">${item.name || ''}</td>
-            <td class="center">${item.design || ''}</td>
             <td class="center">${item.hsnCode || ''}</td>
             ${renderNumCell(item.taka || 0)}
             ${renderNumCell(item.pallu || 0)}
-            ${renderNumCell(num3(item.meter))}
-            ${renderNumCell(num3(item.weight))}
-            ${renderNumCell(money(item.amount / ((item.meter || item.weight) || 1)))}
+            ${renderNumCell(num3(item.meter), 'right')}
+            ${renderNumCell(num3(itemCut), 'right')}
+            ${renderNumCell(money(itemRate), 'right')}
             ${renderNumCell(money(item.amount), 'right', 'amount')}
           </tr>
         `;
       } else {
+        const itemRate = item.rate != null && item.rate > 0 
+          ? item.rate 
+          : (item.qty ? item.amount / item.qty : 0);
         return `
           <tr>
             <td class="left">${item.name || ''}</td>
@@ -81,27 +97,27 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             ${renderNumCell(item.nos || 0)}
             ${renderNumCell(num3(item.qty))}
             ${renderNumCell(item.cut || 0)}
-            ${renderNumCell(money(item.amount / (item.qty || 1)))}
+            ${renderNumCell(money(itemRate), 'right')}
             ${renderNumCell(money(item.amount), 'right', 'amount')}
           </tr>
         `;
       }
     }).join('');
-    // Filler expands inside the items table so Total stays page-bottom
-    // when there are few lines (keeps vertical column rules through the gap).
+
+    // Filler expands inside the items table so Total stays page-bottom when few lines
     const itemCount = detail.items.length;
-    const fillerMinMm = Math.max(18, Math.min(100, 108 - itemCount * 12));
+    const fillerMinMm = itemCount >= 8 ? 0 : Math.max(0, Math.min(60, 75 - itemCount * 9));
     const emptyCells =
       reportType === 'Multi GST Tax Invoice' && isSales
         ? '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right amount"></td>'
         : isSales
-          ? '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right amount"></td>'
+          ? '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right"></td><td class="right"></td><td class="right"></td><td class="right amount"></td>'
           : '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right amount"></td>';
-    const fillerRow = `
+    const fillerRow = fillerMinMm > 0 ? `
       <tr class="filler-row" style="height: ${fillerMinMm}mm;">
         ${emptyCells}
       </tr>
-    `;
+    ` : '';
     return rows + fillerRow;
   };
 
@@ -127,13 +143,12 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
       return `
         <tr>
           <th class="left">Item Name</th>
-          <th class="center">Design</th>
-          <th class="center">HSN</th>
-          <th class="center">Crtn</th>
+          <th class="center">HSN Code</th>
+          <th class="center">Pcs</th>
           <th class="center">Pallu</th>
-          <th class="center">Weight</th>
-          <th class="center">Cops</th>
-          <th class="center">Rate</th>
+          <th class="right">Meter</th>
+          <th class="right">Cut</th>
+          <th class="right">Rate</th>
           <th class="right">Amount</th>
         </tr>
       `;
@@ -173,11 +188,11 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
     } else if (isSales) {
       return `
         <tr class="footer-row">
-          <td colspan="3" class="right" style="font-weight: bold;">Total</td>
+          <td colspan="2" class="right" style="font-weight: bold;">Total</td>
           ${renderNumCell(totalTaka, 'center', 'fw-bold')}
           ${renderNumCell(totalPallu, 'center', 'fw-bold')}
-          ${renderNumCell(num3(totalMeter), 'center', 'fw-bold')}
-          ${renderNumCell(num3(totalWeight), 'center', 'fw-bold')}
+          ${renderNumCell(num3(totalMeter), 'right', 'fw-bold')}
+          ${renderNumCell(num3(totalCut), 'right', 'fw-bold')}
           <td class="center"></td>
           ${renderNumCell(money(detail.grandTotal), 'right', 'amount fw-bold')}
         </tr>
@@ -196,49 +211,64 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
     }
   };
 
-  const company = useCompanyStore.getState().selectedCompany;
-  const companyName = company?.name || 'COMPANY NAME';
-  const gstNo = company?.gstinNo ? `GST No : ${company.gstinNo}` : '';
-  const companyAddress = company?.city || '';
+  const resolvedCompany = company ?? useCompanyStore.getState().selectedCompany;
+  const companyName = resolvedCompany?.name || 'COMPANY NAME';
+  const gstNo = resolvedCompany?.gstinNo ? `GST No : ${resolvedCompany.gstinNo}` : '';
+  const companyAddress = resolvedCompany?.city || '';
   
-  const bank = company?.banks?.[0];
-  const bankName = bank?.name || company?.bankName || '';
-  const branchName = company?.branchName || '';
-  const accountNo = company?.accountNo || '';
-  const ifscCode = company?.ifscCode || '';
+  // Prioritize actual company bank name; avoid CASH A/C when valid bank name is available
+  const nonCashBank = resolvedCompany?.banks?.find(b => b.name && !b.name.toUpperCase().includes('CASH'));
+  const bankName = (resolvedCompany?.bankName && !resolvedCompany.bankName.toUpperCase().includes('CASH'))
+    ? resolvedCompany.bankName
+    : (nonCashBank?.name || resolvedCompany?.bankName || resolvedCompany?.banks?.[0]?.name || '');
+  const branchName = resolvedCompany?.branchName || '';
+  const accountNo = resolvedCompany?.accountNo || '';
+  const ifscCode = resolvedCompany?.ifscCode || '';
 
   const title = reportType.toUpperCase();
   
-  
-  const getTaxRate = (taxType: 'sgst' | 'cgst') => {
-      const item = detail.items.find(i => taxType === 'sgst' ? i.sgstRate : i.cgstRate);
-      if (item) {
-          const r = taxType === 'sgst' ? item.sgstRate : item.cgstRate;
-          return r ? `${num3(r)} %` : '0.00 %';
-      }
-      return '0.00 %';
+  const getTaxRate = (taxType: 'sgst' | 'cgst' | 'igst') => {
+    if (taxType === 'igst' && detail.igstPerc != null && detail.igstPerc > 0) {
+      return `${detail.igstPerc.toFixed(2).padStart(5, '0')} %`;
+    }
+    if (taxType === 'sgst' && detail.sgstPerc != null && detail.sgstPerc > 0) {
+      return `${detail.sgstPerc.toFixed(2).padStart(5, '0')} %`;
+    }
+    if (taxType === 'cgst' && detail.cgstPerc != null && detail.cgstPerc > 0) {
+      return `${detail.cgstPerc.toFixed(2).padStart(5, '0')} %`;
+    }
+    const item = detail.items.find(i => taxType === 'sgst' ? i.sgstRate : taxType === 'cgst' ? i.cgstRate : i.igstRate);
+    if (item) {
+      const r = taxType === 'sgst' ? item.sgstRate : taxType === 'cgst' ? item.cgstRate : item.igstRate;
+      return r ? `${(r).toFixed(2).padStart(5, '0')} %` : '00.00 %';
+    }
+    return '';
   };
 
   const renderTaxRow = (label: string, value: number | undefined, withRate: boolean = false) => {
     if (value == null || value === 0) return '';
     if (withRate) {
-        const rateLabel = getTaxRate(label.toLowerCase() as any);
-        return `
-          <div class="tot-row" style="padding-right: 0;">
-             <div style="flex: 1; display: flex;">
-                 <div class="tot-lbl" style="width: 50%;">${label}</div>
-                 <div class="tot-lbl" style="width: 50%; border-right: 1px solid ${Colors.primary}; text-align: center;">${rateLabel}</div>
-             </div>
-             <div class="tot-val" style="width: 80px; text-align: right; padding-right: 10px;">${money(value)}</div>
-          </div>
-        `;
+      const rateLabel = getTaxRate(label.toLowerCase() as any);
+      return `
+        <div class="tot-row" style="padding-right: 0;">
+           <div style="flex: 1; display: flex;">
+               <div class="tot-lbl" style="width: 50%;">${label}</div>
+               <div class="tot-lbl" style="width: 50%; border-right: 1px solid #d0d0d0; text-align: center;">${rateLabel}</div>
+           </div>
+           <div class="tot-val" style="width: 90px; text-align: right; padding-right: 8px;">${money(value)}</div>
+        </div>
+      `;
     }
 
-    if (value == null || value === 0) return '';
     return `
       <div class="tot-row"><div class="tot-lbl">${label}</div><div class="tot-val">${money(value)}</div></div>
     `;
   };
+
+  const ackDateFormatted = detail.ackDate ? toDDMMYYYY(detail.ackDate) : (detail.date ? toDDMMYYYY(detail.date) : '');
+  const ackText = detail.ackNo
+    ? (detail.ackNo.includes(' - ') || !ackDateFormatted ? detail.ackNo : `${detail.ackNo} - ${ackDateFormatted}`)
+    : '';
 
   const html = `
     <html>
@@ -247,19 +277,18 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
         <style>
           @page {
             size: A4;
-            margin: 8mm;
+            margin: 6mm 8mm;
           }
           * { box-sizing: border-box; }
           html, body {
             margin: 0;
             padding: 0;
             width: 100%;
-            overflow-x: hidden;
           }
           body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             color: #1a1a1a;
-            font-size: 12px;
+            font-size: 11px;
             -webkit-user-select: none;
             user-select: none;
             caret-color: transparent;
@@ -272,87 +301,101 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             background: #fff;
           }
           .container {
-            border: 1px solid ${Colors.primary};
+            border: 1px solid #2b5797;
             display: flex;
             flex-direction: column;
-            /* Fill at least one A4 content height; grow if many line items */
-            min-height: 297mm;
+            min-height: 275mm;
             width: 100%;
             box-sizing: border-box;
           }
           .header {
             text-align: center;
-            border-bottom: 1px solid ${Colors.primary};
-            padding: 10px;
+            border-bottom: 1px solid #2b5797;
+            padding: 8px 10px;
             background-color: ${Colors.infoLight};
           }
           .company-name {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #1a1a1a;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
           }
           .company-address {
-            font-size: 11px;
+            font-size: 10.5px;
             margin-bottom: 2px;
             word-break: break-word;
-            line-height: 1.35;
+            line-height: 1.3;
           }
           .gst-row {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: bold;
-            margin-top: 4px;
+            margin-bottom: 3px;
           }
           .title {
             text-align: center;
             font-weight: bold;
-            font-size: 14px;
-            padding: 8px 0;
-            border-bottom: 1px solid ${Colors.primary};
+            font-size: 13px;
+            padding: 6px 0;
+            border-bottom: 1px solid #2b5797;
             text-transform: uppercase;
+            background-color: #f7f9fd;
           }
           .meta-row {
-            padding: 5px 10px;
-            border-bottom: 1px solid ${Colors.primary};
-            font-size: 10px;
+            padding: 4px 10px;
+            border-bottom: 1px solid #2b5797;
+            font-size: 9.5px;
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
           }
           .info-row {
             display: flex;
-            border-bottom: 1px solid ${Colors.primary};
+            border-bottom: 1px solid #2b5797;
           }
           .info-col {
             flex: 1;
             min-width: 0;
-            padding: 8px;
-            border-right: 1px solid ${Colors.primary};
+            padding: 6px 10px;
+            border-right: 1px solid #2b5797;
           }
           .info-col:last-child {
             border-right: none;
           }
           .info-label {
-            font-size: 10px;
+            font-size: 9.5px;
             color: #555555;
             margin-bottom: 2px;
             font-weight: bold;
           }
           .info-value {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
             word-break: break-word;
           }
           .info-address {
-            font-size: 10px;
+            font-size: 9.5px;
             word-break: break-word;
+            line-height: 1.3;
+            margin-bottom: 6px;
+          }
+          .info-meta-sub {
+            font-size: 9.5px;
             line-height: 1.35;
           }
-          .info-meta {
+          .info-invoice-box {
+            flex: 0.7;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+          }
+          .invoice-box-cell {
+            padding: 6px 10px;
             font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 8px;
+            font-size: 11px;
+          }
+          .invoice-box-no {
+            border-bottom: 1px solid #2b5797;
           }
           table {
             width: 100%;
@@ -363,36 +406,38 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           }
           tr {
             page-break-inside: avoid;
+            break-inside: avoid;
           }
           th {
-            font-size: 9px;
-            background-color: ${Colors.infoLight};
-            color: #1a1a1a;
-            padding: 6px 2px;
-            border-bottom: 1px solid ${Colors.primary};
-            border-right: 1px solid ${Colors.primary};
-            line-height: 1.15;
+            font-size: 9.5px;
+            background-color: #2b5797;
+            color: #ffffff;
+            font-weight: bold;
+            padding: 5px 3px;
+            border-bottom: 1px solid #2b5797;
+            border-right: 1px solid #ffffff;
+            line-height: 1.2;
             white-space: nowrap;
           }
           th:last-child {
             border-right: none;
           }
           td {
-            font-size: 11px;
-            padding: 5px 2px;
-            border-right: 1px solid ${Colors.primary};
-            border-bottom: 1px solid #E6E6E6;
+            font-size: 10px;
+            padding: 4px 3px;
+            border-right: 1px solid #d0d0d0;
+            border-bottom: 1px solid #e0e0e0;
             word-break: break-word;
             overflow-wrap: anywhere;
           }
           td:last-child {
             border-right: none;
           }
-          td.shrink-7 { font-size: 9px; }
-          td.shrink-9 { font-size: 8px; letter-spacing: -0.2px; }
-          .items-table.cols-12 td.shrink-7 { font-size: 6.5px; }
-          .items-table.cols-12 td.shrink-9 { font-size: 5.5px; letter-spacing: -0.2px; }
-          /* Sales: Auto-layout ensures columns precisely fit data, Item Name expands to fill */
+          td.shrink-7 { font-size: 8.5px; }
+          td.shrink-9 { font-size: 7.5px; letter-spacing: -0.2px; }
+          .items-table.cols-12 th, .items-table.cols-12 td { font-size: 7.5px; padding: 3px 2px; }
+          .items-table.cols-12 td.shrink-7 { font-size: 6px; }
+          .items-table.cols-12 td.shrink-9 { font-size: 5px; letter-spacing: -0.2px; }
           .items-table th, .items-table td {
             white-space: nowrap;
           }
@@ -400,10 +445,6 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             width: 100%;
             white-space: normal;
           }
-          
-          .items-table.cols-12 th, .items-table.cols-12 td { font-size: 8px; padding: 4px 2px; }
-          
-          /* Expandable blank band between last item and Total */
           .filler-row {
             height: 100%;
           }
@@ -422,29 +463,29 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             height: 100%;
           }
           .footer-row td {
-            border-top: 1px solid ${Colors.primary};
-            border-bottom: 1px solid ${Colors.primary};
+            border-top: 1px solid #2b5797;
+            border-bottom: 1px solid #2b5797;
             background: #fff;
           }
-          .items-table.cols-9 th:nth-child(1),
-          .items-table.cols-9 td:nth-child(1) { width: 24%; }
-          .items-table.cols-9 th:nth-child(2),
-          .items-table.cols-9 td:nth-child(2) { width: 13%; }
-          .items-table.cols-9 th:nth-child(3),
-          .items-table.cols-9 td:nth-child(3) { width: 8%; }
-          .items-table.cols-9 th:nth-child(4),
-          .items-table.cols-9 td:nth-child(4) { width: 6%; }
-          .items-table.cols-9 th:nth-child(5),
-          .items-table.cols-9 td:nth-child(5) { width: 6%; }
-          .items-table.cols-9 th:nth-child(6),
-          .items-table.cols-9 td:nth-child(6) { width: 10%; }
-          .items-table.cols-9 th:nth-child(7),
-          .items-table.cols-9 td:nth-child(7) { width: 10%; }
-          .items-table.cols-9 th:nth-child(8),
-          .items-table.cols-9 td:nth-child(8) { width: 9%; }
-          .items-table.cols-9 th:nth-child(9),
-          .items-table.cols-9 td:nth-child(9) { width: 14%; }
-          /* Purchase / GP */
+          /* Sales 8 cols matching reference */
+          .items-table.cols-8-sales th:nth-child(1),
+          .items-table.cols-8-sales td:nth-child(1) { width: 27%; }
+          .items-table.cols-8-sales th:nth-child(2),
+          .items-table.cols-8-sales td:nth-child(2) { width: 12%; }
+          .items-table.cols-8-sales th:nth-child(3),
+          .items-table.cols-8-sales td:nth-child(3) { width: 7%; }
+          .items-table.cols-8-sales th:nth-child(4),
+          .items-table.cols-8-sales td:nth-child(4) { width: 7%; }
+          .items-table.cols-8-sales th:nth-child(5),
+          .items-table.cols-8-sales td:nth-child(5) { width: 11%; }
+          .items-table.cols-8-sales th:nth-child(6),
+          .items-table.cols-8-sales td:nth-child(6) { width: 10%; }
+          .items-table.cols-8-sales th:nth-child(7),
+          .items-table.cols-8-sales td:nth-child(7) { width: 11%; }
+          .items-table.cols-8-sales th:nth-child(8),
+          .items-table.cols-8-sales td:nth-child(8) { width: 15%; }
+
+          /* Purchase / GP 8 cols */
           .items-table.cols-8 th:nth-child(1),
           .items-table.cols-8 td:nth-child(1) { width: 26%; }
           .items-table.cols-8 th:nth-child(2),
@@ -461,6 +502,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           .items-table.cols-8 td:nth-child(7) { width: 10%; }
           .items-table.cols-8 th:nth-child(8),
           .items-table.cols-8 td:nth-child(8) { width: 15%; }
+
           .items-table td.amount,
           .items-table th:last-child,
           .items-table td:last-child {
@@ -475,7 +517,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             display: flex;
             flex-direction: column;
             min-height: 0;
-            border-bottom: 1px solid ${Colors.primary};
+            border-bottom: 1px solid #2b5797;
           }
           .right { text-align: right; }
           .center { text-align: center; }
@@ -484,11 +526,13 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           
           .totals-block {
             display: flex;
-            border-bottom: 1px solid ${Colors.primary};
+            border-bottom: 1px solid #2b5797;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           .totals-left {
-            flex: 1.5;
-            border-right: 1px solid ${Colors.primary};
+            flex: 1.4;
+            border-right: 1px solid #2b5797;
           }
           .totals-right {
             flex: 1;
@@ -498,24 +542,25 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             display: flex;
             justify-content: space-between;
             gap: 8px;
-            padding: 5px 10px;
-            border-bottom: 1px solid #E6E6E6;
+            padding: 3px 8px;
+            border-bottom: 1px solid #e0e0e0;
           }
           .tot-lbl {
             font-weight: bold;
-            font-size: 11px;
+            font-size: 10.5px;
           }
           .tot-val {
-            font-size: 11px;
+            font-size: 10.5px;
             white-space: nowrap;
           }
-          .tot-grand {
+          .tot-net {
             background-color: ${Colors.infoLight};
             border-bottom: none;
-            padding: 8px 10px;
+            padding: 5px 8px;
           }
-          .tot-grand .tot-lbl, .tot-grand .tot-val {
-            font-size: 13px;
+          .tot-net .tot-lbl, .tot-net .tot-val {
+            font-size: 12px;
+            font-weight: bold;
             color: #1a1a1a;
           }
           
@@ -523,37 +568,39 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
             display: flex;
             margin-top: auto;
             gap: 8px;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
           .bank-details, .signatory {
             flex: 1;
             min-width: 0;
-            padding: 10px;
+            padding: 6px 10px;
           }
           .signatory {
             text-align: right;
           }
           .bank-title, .sign-title {
             font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 12px;
+            margin-bottom: 4px;
+            font-size: 11px;
           }
           .bank-row {
-            font-size: 11px;
+            font-size: 10px;
             margin-bottom: 2px;
             word-break: break-word;
           }
           .bank-lbl {
             display: inline-block;
-            width: 90px;
+            width: 85px;
           }
           .sign-note {
-            font-size: 10px;
-            margin-top: 10px;
+            font-size: 9.5px;
+            margin-top: 6px;
           }
           .auth-sign {
             font-weight: bold;
-            font-size: 12px;
-            margin-top: 36px;
+            font-size: 11px;
+            margin-top: 24px;
           }
         </style>
       </head>
@@ -568,43 +615,45 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
           </div>
           <div class="title">${title}</div>
           
-                    <div class="meta-row" style="flex-direction: column; gap: 4px;">
-            <div style="width: 100%;">Ack No : ${detail.ackNo || ''}</div>
+          <div class="meta-row" style="flex-direction: column; gap: 4px;">
+            <div style="width: 100%;">Ack No : ${ackText}</div>
             <div style="width: 100%; word-break: break-all;">IRN : ${detail.irn || ''}</div>
           </div>
 
-                    <div class="info-row">
+          <div class="info-row">
             <div class="info-col">
               <div class="info-label">Bill To:</div>
               <div class="info-value">${detail.partyName}</div>
-              <div class="info-address">ADD:- ${detail.partyAddress || ''}</div>
-              <br/>
-              <div class="info-address">Broker : ${detail.brokerName || 'DIRECT'}</div>
-              <div class="info-address">GST No : ${detail.gstNo || ''}</div>
-              <div class="info-address">Mo : ${detail.mobileNo || ''}</div>
+              <div class="info-address">${detail.partyAddress || ''}</div>
+              <div class="info-meta-sub">
+                ${detail.brokerName ? `<div>Broker : ${detail.brokerName}</div>` : ''}
+                ${detail.gstNo ? `<div>GST No : ${detail.gstNo}</div>` : ''}
+                <div>Mo : ${detail.mobileNo || ''}</div>
+              </div>
             </div>
             <div class="info-col">
               <div class="info-label">Delivery At:</div>
               <div class="info-value">${detail.deliveryPartyName || detail.partyName}</div>
-              <div class="info-address">ADD:- ${detail.partyAddress || ''}</div>
-              <br/>
-              <div class="info-address">GST No : ${detail.gstNo || ''}</div>
-              <div class="info-address">Mo : ${detail.mobileNo || ''}</div>
+              <div class="info-address">${detail.partyAddress || ''}</div>
+              <div class="info-meta-sub">
+                ${detail.gstNo ? `<div>GST No : ${detail.gstNo}</div>` : ''}
+                <div>Mo : ${detail.mobileNo || ''}</div>
+              </div>
             </div>
-            <div class="info-col" style="flex: 0.6;">
-              <div class="info-meta">Invoice No: ${detail.invoiceNo}</div>
-              <div class="info-meta">Date: ${toDDMMYYYY(detail.date)}</div>
+            <div class="info-col info-invoice-box">
+              <div class="invoice-box-cell invoice-box-no">Invoice No: ${detail.invoiceNo}</div>
+              <div class="invoice-box-cell invoice-box-date">Date: ${toDDMMYYYY(detail.date)}</div>
             </div>
           </div>
 
           <div class="meta-row">
-            <div style="margin-right: 20px;">| Vehical No: ${detail.vehicalNo || ''}</div>
+            <div style="margin-right: 20px;">| Transporter : ${detail.transporter || detail.vehicalNo || ''}</div>
             <div>| Eway Bill No: ${detail.ewayBillNo || ''}</div>
           </div>
 
           <!-- Grid: items + expandable filler + Total -->
           <div class="grid-container">
-            <table class="items-table ${reportType === 'Multi GST Tax Invoice' && isSales ? 'cols-12' : isSales ? 'cols-9' : 'cols-8'}">
+            <table class="items-table ${reportType === 'Multi GST Tax Invoice' && isSales ? 'cols-12' : isSales ? 'cols-8-sales' : 'cols-8'}">
               <thead>
                 ${getGridHeader()}
               </thead>
@@ -623,7 +672,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
               ${renderTaxRow('Discount', detail.discount)}
               ${renderTaxRow('Add Other', detail.addOther1)}
               ${renderTaxRow('Freight', detail.freight)}
-              ${renderTaxRow('IGST', detail.igst)}
+              ${renderTaxRow('IGST', detail.igst, true)}
               ${renderTaxRow('SGST', detail.sgst, true)}
               ${renderTaxRow('CGST', detail.cgst, true)}
               ${renderTaxRow('Freight', detail.bFreight)}
@@ -631,7 +680,7 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
               ${renderTaxRow('Add Less', detail.addLess)}
               ${renderTaxRow('TCS', detail.tcs)}
               ${renderTaxRow('Round Off', detail.roundOf)}
-              <div class="tot-row" style="border-bottom: none;"><div class="tot-lbl" style="border-right: 1px solid ${Colors.primary};">Net Amount</div><div class="tot-val">${money(detail.netAmount)}</div></div>
+              <div class="tot-row tot-net"><div class="tot-lbl">Net Amount</div><div class="tot-val">${money(detail.netAmount)}</div></div>
             </div>
           </div>
 
@@ -657,9 +706,25 @@ export const generateInvoicePDF = async (detail: BillDetail, module: BillModule,
     </html>
   `;
 
+  return html;
+};
+
+export const generateInvoicePDF = async (detail: BillDetail, module: BillModule, reportType: string = 'Tax Invoice') => {
+  const company = useCompanyStore.getState().selectedCompany;
+  const html = generateInvoiceHTML(detail, module, reportType, company);
+
   try {
+    let prefix = 'sales_invoice';
+    if (module === 'purchase') {
+      prefix = 'purchase_bill';
+    } else if (module === 'gp') {
+      prefix = 'gp_bill';
+    }
+    const billNo = detail.invoiceNo || detail.id || '';
+    const fileName = formatPdfFileName(prefix, billNo);
+
     // Instead of using native print preview, we dispatch the HTML to our custom in-app global modal
-    usePdfStore.getState().openPreview(html);
+    usePdfStore.getState().openPreview(html, fileName);
   } catch (error) {
     console.error("Failed to generate or share Invoice PDF", error);
   }

@@ -15,7 +15,7 @@ import { ZIcon as Icon } from '../../components/ZIcon';
 import { useAuthStore } from '../../store/authStore';
 import { InputField } from '../../components/InputField';
 import { PrimaryButton } from '../../components/PrimaryButton';
-import { API_BASE_URL } from '../../config';
+import { ZeelCloudLogo } from '../../components/ZeelCloudLogo';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme';
 import type { RootStackParamList } from '../../types';
 
@@ -87,12 +87,7 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         {/* Logo */}
         <View style={styles.logoSection}>
           <View style={styles.logoRow}>
-            <View style={styles.logoIcon}>
-              <Icon name="cloud" size={30} color={Colors.white} />
-              <View style={styles.logoArrow}>
-                <Icon name="trending-up" size={14} color={Colors.success} />
-              </View>
-            </View>
+            <ZeelCloudLogo size={72} />
           </View>
           <Text style={styles.brand}>
             ZEEL <Text style={styles.brandLight}>CLOUD</Text>
@@ -174,8 +169,6 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <Text style={styles.version}>Version 1.0.0</Text>
-        {/* Diagnostic: the exact server the app is talking to. */}
-        <Text style={styles.serverHint}>server: {API_BASE_URL}</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -194,19 +187,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxl,
   },
   logoRow: { marginBottom: Spacing.md },
-  logoIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoArrow: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-  },
   brand: {
     fontSize: Typography.fontSizes.xxl,
     fontWeight: Typography.fontWeights.extraBold,
@@ -303,12 +283,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSizes.xs,
     color: Colors.textMuted,
     marginTop: Spacing.xl,
-  },
-  serverHint: {
-    textAlign: 'center',
-    fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 4,
   },
   subUserLinkBtn: {
     flexDirection: 'row',

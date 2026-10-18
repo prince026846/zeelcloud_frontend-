@@ -164,6 +164,88 @@ export interface SalesOrderItem {
   amount: number;
 }
 
+// ─── Quotation Management Module ──────────────────────────────────────────────
+export interface QuotationItemMaster {
+  id: string;
+  companyId: number;
+  companyName: string;
+  itemName: string;
+  narration?: string;
+  mrp: number;
+  gstPercentage: number;
+  image?: string;
+  imageUrl?: string;
+  isActive: boolean;
+  created: string;
+}
+
+export interface QuotationItem {
+  id: string;
+  itemMasterId?: string | null;
+  itemName: string;
+  narration?: string;
+  imageUrl?: string;
+  batchNo?: string;
+  mrp: number;
+  rate: number;
+  gstPercentage: number;
+  gstAmount: number;
+  quantity: number;
+  amount: number;
+  lineNo: number;
+}
+
+export interface Quotation {
+  id: string;
+  companyId: number;
+  quotationNo: string;
+  date: string;
+  partyId?: number | null;
+  partyName: string;
+  partyAddress?: string;
+  contactNo?: string;
+  email?: string;
+  ccEmail?: string;
+  remark?: string;
+  subtotal: number;
+  discountType: 'amount' | 'percentage';
+  discountValue: number;
+  discountAmount: number;
+  totalGstAmount: number;
+  totalAmount: number;
+  items: QuotationItem[];
+  created: string;
+  updated: string;
+}
+
+export interface CreateQuotationItemPayload {
+  item_master_id?: string | null;
+  item_name: string;
+  narration?: string;
+  image_url?: string;
+  batch_no?: string;
+  mrp?: number;
+  rate: number;
+  quantity: number;
+  gst_percentage?: number;
+}
+
+export interface CreateQuotationPayload {
+  company_id: number;
+  quotation_no?: string;
+  date: string; // YYYY-MM-DD
+  party_id?: number | null;
+  party_name: string;
+  party_address?: string;
+  contact_no?: string;
+  email?: string;
+  cc_email?: string;
+  remark?: string;
+  discount_type?: 'amount' | 'percentage';
+  discount_value?: number;
+  items: CreateQuotationItemPayload[];
+}
+
 // Sales OS
 export interface SalesOsParty {
   id: string;
@@ -315,6 +397,7 @@ export interface BillDetailItem {
   nos?: number;    // VN_Nung    (purchase)
   qty?: number;    // VN_Qty     (purchase / gp)
   cut?: number;    // VN_Cut     (purchase)
+  rate?: number;   // VN_Rate
   amount: number;  // VN_Amount
   sgstRate?: number;
   cgstRate?: number;
@@ -332,9 +415,11 @@ export interface BillDetail {
   partyAddress: string; // account.party address1..3 + city + pin
   deliveryPartyName?: string;
   vehicalNo?: string;
+  transporter?: string;
   ewayBillNo?: string;
   irn?: string;
   ackNo?: string;
+  ackDate?: string;
   brokerName?: string;
   gstNo?: string;
   mobileNo?: string;
@@ -355,6 +440,9 @@ export interface BillDetail {
   igst: number;         // vn_igst
   sgst: number;         // vn_sgst
   cgst: number;         // vn_cgst
+  igstPerc?: number;    // vn_igst_perc
+  sgstPerc?: number;    // vn_sgst_perc
+  cgstPerc?: number;    // vn_cgst_perc
   addLess: number;      // vn_add_less
   tcs: number;          // vn_tcs_amount
   roundOf: number;      // vn_round_of
@@ -451,6 +539,7 @@ export interface PartyLedgerAccount {
   name: string;
   balance: number; // +ve = receivable/Dr, -ve = payable/Cr
   phone: string;
+  address?: string;
 }
 
 // Ledger
@@ -613,6 +702,7 @@ export type AppStackParamList = {
   PartyLedgerDetail: {
     accountId: string;
     title: string;
+    partyAddress?: string;
   };
   LedgerDetails: {
     accountId: string;
@@ -621,6 +711,7 @@ export type AppStackParamList = {
   };
   About: undefined;
   Contact: undefined;
+  QuotationStack: undefined;
 };
 
 // Account context (before / outside a company)
@@ -644,7 +735,16 @@ export type CompanyTabParamList = {
   Reports: undefined;
   Stocks: undefined;
   SalesOrders: undefined;
+  Quotations: undefined;
   More: undefined;
+};
+
+export type QuotationStackParamList = {
+  QuotationHub: undefined;
+  QuotationList: undefined;
+  CreateQuotation: { quotation?: Quotation } | undefined;
+  QuotationDetail: { id: string };
+  QuotationItemMaster: undefined;
 };
 
 export type SalesOrderStackParamList = {

@@ -7,16 +7,18 @@ interface EmptyStateProps {
   icon: string;
   title: string;
   subtitle?: string;
+  message?: string;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, subtitle }) => {
+export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, subtitle, message }) => {
+  const displayText = subtitle || message;
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
         <Icon name={icon} size={56} color={Colors.gray300} />
       </View>
       <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {displayText ? <Text style={styles.subtitle}>{displayText}</Text> : null}
     </View>
   );
 };

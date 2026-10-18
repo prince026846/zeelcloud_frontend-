@@ -35,7 +35,7 @@ export const mockUser: User = {
 // ─── Companies ────────────────────────────────────────────────────────────────
 
 export const mockCompanies: Company[] = [
-  { id: 'c001', name: 'VARNI TEXTILE', city: 'Surat', isActive: true },
+  { id: 'c001', name: 'ZEEL TEXTILE', city: 'Surat', isActive: true },
   { id: 'c002', name: 'MAHI TEXTILE', city: 'Surat', isActive: true },
   { id: 'c003', name: 'SHREE CREATION', city: 'Surat', isActive: true },
   { id: 'c004', name: 'VED FASHION', city: 'Ahmedabad', isActive: true },
@@ -102,14 +102,14 @@ export const mockBankAccounts: BankAccount[] = [
 // ─── Party Ledger balances ────────────────────────────────────────────────────
 
 export const mockPartyLedger: PartyLedgerAccount[] = [
-  { id: 'pl001', name: 'Shree Ram Textiles', balance: 1245000, phone: '+91 98765 43210' },
-  { id: 'pl002', name: 'Bhavani Sarees Pvt Ltd', balance: 876500, phone: '+91 97654 32109' },
-  { id: 'pl003', name: 'Laxmi Fabrics', balance: -158000, phone: '+91 96543 21098' },
-  { id: 'pl004', name: 'Ganesh Weavers', balance: 0, phone: '+91 95432 10987' },
-  { id: 'pl005', name: 'Jai Ambe Silk House', balance: 920000, phone: '+91 94321 09876' },
-  { id: 'pl006', name: 'Krishnadev Traders', balance: -42000, phone: '+91 93210 98765' },
-  { id: 'pl007', name: 'Mahalaxmi Textiles', balance: 654000, phone: '+91 92109 87654' },
-  { id: 'pl008', name: 'Saraswati Cloth Merchants', balance: 0, phone: '+91 91098 76543' },
+  { id: 'pl001', name: 'Shree Ram Textiles', balance: 1245000, phone: '+91 98765 43210', address: 'Plot No. 12, Ring Road, Surat' },
+  { id: 'pl002', name: 'Bhavani Sarees Pvt Ltd', balance: 876500, phone: '+91 97654 32109', address: 'Near Textile Market, Ahmedabad' },
+  { id: 'pl003', name: 'Laxmi Fabrics', balance: -158000, phone: '+91 96543 21098', address: 'Station Road, Bhiwandi' },
+  { id: 'pl004', name: 'Ganesh Weavers', balance: 0, phone: '+91 95432 10987', address: 'GIDC Industrial Area, Surat' },
+  { id: 'pl005', name: 'Jai Ambe Silk House', balance: 920000, phone: '+91 94321 09876', address: 'Millennium Market, Ring Road, Surat' },
+  { id: 'pl006', name: 'Krishnadev Traders', balance: -42000, phone: '+91 93210 98765', address: 'Main Bazar, Varanasi' },
+  { id: 'pl007', name: 'Mahalaxmi Textiles', balance: 654000, phone: '+91 92109 87654', address: 'Navsari Highway, Navsari' },
+  { id: 'pl008', name: 'Saraswati Cloth Merchants', balance: 0, phone: '+91 91098 76543', address: 'Kalupur, Ahmedabad' },
 ];
 
 // ─── Dashboard: Sales report (weekly bar chart) ───────────────────────────────

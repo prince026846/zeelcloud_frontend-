@@ -5,11 +5,54 @@ import { Colors, Typography, Spacing, BorderRadius } from '../theme';
 
 import { useState, useEffect, useMemo } from 'react';
 
+export type InterestBaseMode = 'net' | 'basic';
+
+/**
+ * Extract normalized overdue days from any invoice object.
+ * Logic:
+ * 1. If totalDueDays and termDays exist: max(0, totalDueDays - termDays).
+ * 2. If dueDays exists (e.g. GpOsInvoice where due_days = totalDueDays - termDays): max(0, dueDays).
+ * 3. If daysLeft exists (Sales/Purchase where negative means overdue): max(0, -daysLeft).
+ * 4. Fallback: max(0, totalDueDays ?? 0).
+ */
+export const getOverdueDays = (inv: any): number => {
+  if (!inv) return 0;
+  if (typeof inv.totalDueDays === 'number' && typeof inv.termDays === 'number') {
+    return Math.max(0, inv.totalDueDays - inv.termDays);
+  }
+  if (typeof inv.dueDays === 'number') {
+    return Math.max(0, inv.dueDays);
+  }
+  if (typeof inv.daysLeft === 'number') {
+    return Math.max(0, -inv.daysLeft);
+  }
+  if (typeof inv.totalDueDays === 'number') {
+    return Math.max(0, inv.totalDueDays);
+  }
+  return 0;
+};
+
+/**
+ * Extract the base amount for interest calculation:
+ * - Net mode (default): uses outstanding / balance.
+ * - Basic mode: uses amountBeforeGst (VN_Amount_Befor_Gst). If 0/missing/invalid, safely falls back to net amount.
+ */
+export const getBillBaseAmount = (inv: any, base: InterestBaseMode = 'net'): number => {
+  if (!inv) return 0;
+  const netAmount = Number(inv.outstanding ?? inv.balance ?? inv.netBalance ?? inv.amount ?? 0) || 0;
+  if (base === 'basic') {
+    const preGst = Number(inv.amountBeforeGst ?? inv.vn_amount_befor_gst ?? inv.VN_Amount_Befor_Gst ?? 0);
+    return preGst > 0 ? preGst : netAmount;
+  }
+  return netAmount;
+};
+
 export const useInlineInterest = () => {
   const [interestType, setInterestType] = useState<'yearly' | 'monthly'>('yearly');
   const [interestRate, setInterestRate] = useState('18');
   const [interestDays, setInterestDays] = useState('365');
   const [extraDays, setExtraDays] = useState('');
+  const [interestBase, setInterestBase] = useState<InterestBaseMode>('net');
 
   useEffect(() => {
     if (interestType === 'yearly') {
@@ -21,12 +64,48 @@ export const useInlineInterest = () => {
     }
   }, [interestType]);
 
-  const calculateBillInterest = (billNet: number, billTotalDueDays: number) => {
+  const calculateBillInterest = (
+    invOrAmount: any,
+    daysOrOverdue?: number,
+    mode?: InterestBaseMode
+  ): number => {
+    let baseAmt = 0;
+    let overdueDays = 0;
+
+    if (typeof invOrAmount === 'object' && invOrAmount !== null) {
+      const activeMode = mode ?? interestBase;
+      baseAmt = getBillBaseAmount(invOrAmount, activeMode);
+      overdueDays = getOverdueDays(invOrAmount);
+    } else {
+      baseAmt = Number(invOrAmount) || 0;
+      overdueDays = Number(daysOrOverdue) || 0;
+    }
+
+    // Bills that have not exceeded credit terms must accrue zero interest
+    if (overdueDays <= 0 || baseAmt <= 0) {
+      return 0;
+    }
+
     const rate = parseFloat(interestRate) || 0;
     const baseDays = parseInt(interestDays, 10) || (interestType === 'yearly' ? 365 : 30);
     const extra = parseInt(extraDays, 10) || 0;
-    const interest = (billNet * rate / 100 / baseDays) * (billTotalDueDays + extra);
+    // Add user-entered +Days only after determining overdue days, clamped to zero
+    const calcDays = Math.max(0, overdueDays + extra);
+
+    if (calcDays <= 0) return 0;
+
+    const interest = (baseAmt * rate / 100 / baseDays) * calcDays;
     return Math.round((interest + Number.EPSILON) * 100) / 100;
+  };
+
+  const calculateSelectedBillAmount = (invoices: any[], mode?: InterestBaseMode): number => {
+    const activeMode = mode ?? interestBase;
+    return invoices.reduce((sum, inv) => sum + getBillBaseAmount(inv, activeMode), 0);
+  };
+
+  const calculateTotalInterest = (invoices: any[], mode?: InterestBaseMode): number => {
+    const activeMode = mode ?? interestBase;
+    return invoices.reduce((sum, inv) => sum + calculateBillInterest(inv, undefined, activeMode), 0);
   };
 
   return {
@@ -34,7 +113,12 @@ export const useInlineInterest = () => {
     interestRate, setInterestRate,
     interestDays, setInterestDays,
     extraDays, setExtraDays,
+    interestBase, setInterestBase,
     calculateBillInterest,
+    calculateSelectedBillAmount,
+    calculateTotalInterest,
+    getBillBaseAmount,
+    getOverdueDays,
   };
 };
 
@@ -47,6 +131,8 @@ export interface InlineInterestCalculatorProps {
   setInterestDays: (days: string) => void;
   extraDays: string;
   setExtraDays: (days: string) => void;
+  interestBase?: InterestBaseMode;
+  setInterestBase?: (base: InterestBaseMode) => void;
   totalInterest: number;
   selectedBillAmount: number;
 }
@@ -63,6 +149,8 @@ export const InlineInterestCalculator: React.FC<InlineInterestCalculatorProps> =
   setInterestDays,
   extraDays,
   setExtraDays,
+  interestBase = 'net',
+  setInterestBase,
   totalInterest,
   selectedBillAmount,
 }) => {
@@ -71,6 +159,7 @@ export const InlineInterestCalculator: React.FC<InlineInterestCalculatorProps> =
   const tds = Math.round(roundedInterest * 0.10);
   const netInterest = roundedInterest + gst - tds;
   const totalOs = selectedBillAmount + netInterest;
+  const isBasic = interestBase === 'basic';
 
   return (
     <View style={styles.container}>
@@ -80,6 +169,25 @@ export const InlineInterestCalculator: React.FC<InlineInterestCalculatorProps> =
           <Text style={styles.compactTypeBtnText}>{interestType === 'yearly' ? 'Yearly' : 'Monthly'}</Text>
           <Icon name="swap-horizontal" size={14} color={Colors.primary} />
         </TouchableOpacity>
+
+        {setInterestBase && (
+          <View style={styles.baseSegment}>
+            <TouchableOpacity
+              style={[styles.baseSegmentBtn, !isBasic && styles.baseSegmentBtnActive]}
+              onPress={() => setInterestBase('net')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.baseSegmentText, !isBasic && styles.baseSegmentTextActive]}>Net</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.baseSegmentBtn, isBasic && styles.baseSegmentBtnActive]}
+              onPress={() => setInterestBase('basic')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.baseSegmentText, isBasic && styles.baseSegmentTextActive]}>Basic</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         
         <View style={styles.compactInputGroup}>
           <Text style={styles.inputLabel}>Int(%)</Text>
@@ -100,7 +208,7 @@ export const InlineInterestCalculator: React.FC<InlineInterestCalculatorProps> =
         <Text style={styles.cardTitleCentered}>Selected Bills Total O/s</Text>
         
         <View style={styles.rowCompact}>
-          <Text style={styles.labelCompact}>Bills Interest Amount:</Text>
+          <Text style={styles.labelCompact}>Bills Interest Amount{isBasic ? ' (Basic)' : ''}:</Text>
           <Text style={styles.valueCompact}>{formatMoney(roundedInterest)}</Text>
         </View>
         <View style={styles.rowCompact}>
@@ -119,7 +227,7 @@ export const InlineInterestCalculator: React.FC<InlineInterestCalculatorProps> =
           <Text style={styles.valueCompact}>{formatMoney(netInterest)}</Text>
         </View>
         <View style={styles.rowCompact}>
-          <Text style={styles.labelCompact}>Selected Bill Amount:</Text>
+          <Text style={styles.labelCompact}>Selected Bill Amount{isBasic ? ' (Basic)' : ''}:</Text>
           <Text style={styles.valueCompact}>{formatMoney(selectedBillAmount)}</Text>
         </View>
         
@@ -141,7 +249,8 @@ const styles = StyleSheet.create({
   settingsRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: Spacing.sm,
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
     marginBottom: Spacing.sm,
   },
   compactTypeBtn: {
@@ -161,8 +270,36 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: Typography.fontWeights.semiBold,
   },
+  baseSegment: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    height: 32,
+    overflow: 'hidden',
+    backgroundColor: Colors.surface,
+  },
+  baseSegmentBtn: {
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  },
+  baseSegmentBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  baseSegmentText: {
+    fontSize: Typography.fontSizes.xs,
+    color: Colors.primary,
+    fontWeight: Typography.fontWeights.semiBold,
+  },
+  baseSegmentTextActive: {
+    color: '#ffffff',
+    fontWeight: Typography.fontWeights.bold,
+  },
   compactInputGroup: {
     flex: 1,
+    minWidth: 50,
   },
   inputLabel: {
     fontSize: 10,

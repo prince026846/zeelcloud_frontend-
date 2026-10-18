@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoggedIn: false,
   isLoading: false,
   isAppLocked: false,
-  appLockEnabled: true,
+  appLockEnabled: false,
   user: null,
   token: null,
 
@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   restoreSessions: async () => {
     try {
       const lockPref = await AsyncStorage.getItem(APP_LOCK_ENABLED_KEY);
-      const appLockEnabled = lockPref === null ? true : lockPref === '1';
+      const appLockEnabled = lockPref === null ? false : lockPref === '1';
 
       // 1. Migration Step
       const legacyToken = await SecureStore.getItemAsync(LEGACY_TOKEN_KEY);

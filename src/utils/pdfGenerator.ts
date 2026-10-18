@@ -3,7 +3,10 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { toDDMMYYYY, toDDMMYY } from './formatDate';
 import { usePdfStore } from '../store/usePdfStore';
+import { useCompanyStore } from '../store/companyStore';
+import { formatPdfFileName } from './pdfFileName';
 import { Colors } from '../theme';
+import { getOverdueDays, InterestBaseMode } from '../components/InlineInterestCalculator';
 
 export interface PDFPartySection {
   name: string;
@@ -14,8 +17,9 @@ export interface PDFPartySection {
 
 export interface PDFReportData {
   title: string;
-  companyName: string;
-  companyAddress: string;
+  reportType?: 'sales_os' | 'purchase_os' | 'gp_os' | string;
+  companyName?: string;
+  companyAddress?: string;
   partyName: string;
   partyAddress: string;
   partyBroker: string;
@@ -28,6 +32,7 @@ export interface PDFReportData {
   date: string;
   invoices: any[]; // The bills to show (flat fallback / totals source)
   showInterest: boolean;
+  interestBase?: InterestBaseMode;
   totals: {
     totalOs: number; // party total
     selectedBillAmount: number;
@@ -37,14 +42,13 @@ export interface PDFReportData {
     netInterest: number;
     totalSelectedOs: number;
   };
-  calculateInterest?: (amount: number, days: number) => number;
+  calculateInterest?: (invOrAmount: any, days?: number) => number;
 }
 
 export const generateOutstandingReportPDF = async (data: PDFReportData) => {
+  const selectedCompany = useCompanyStore.getState().selectedCompany;
   const {
     title,
-    companyName,
-    companyAddress,
     partyName,
     partyAddress,
     partyBroker,
@@ -55,9 +59,18 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
     date,
     invoices,
     showInterest,
+    interestBase = 'net',
     totals,
     calculateInterest
   } = data;
+
+  const companyName = data.companyName || selectedCompany?.name || '';
+  const companyAddress = data.companyAddress || selectedCompany?.city || '';
+
+  const d = date ? new Date(date) : new Date();
+  const year = isNaN(d.getTime()) ? new Date().getFullYear() : d.getFullYear();
+  const month = isNaN(d.getTime()) ? new Date().getMonth() : d.getMonth();
+  const finYear = month >= 3 ? `${year} - ${year + 1}` : `${year - 1} - ${year}`;
 
   // Column + summary interest only when the Interest toggle is on
   const withInterest = Boolean(showInterest && calculateInterest);
@@ -73,13 +86,23 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
     const amount = inv.outstanding ?? inv.balance ?? inv.netBalance ?? 0;
     const termDays = inv.termDays ?? inv.creditDays ?? 0;
     const totalDueDays = inv.totalDueDays ?? 0;
-    // Days left might be negative if overdue in Sales OS, or dueDays in GP OS
-    const dueDays = inv.dueDays ?? (inv.daysLeft ? -inv.daysLeft : 0);
+    // Calculate normalized overdue days using shared helper
+    const overdueDays = getOverdueDays(inv);
+    // Raw due days for display (positive if overdue, negative if days left)
+    const rawDueDays = inv.dueDays ?? (inv.daysLeft !== undefined ? -inv.daysLeft : (totalDueDays - termDays));
     
     let interestStr = '';
     if (withInterest && calculateInterest) {
-      const intAmt = calculateInterest(amount, totalDueDays);
-      interestStr = `<td class="right">${intAmt.toFixed(2)}</td>`;
+      let intAmt = 0;
+      try {
+        intAmt = calculateInterest(inv);
+        if (isNaN(intAmt)) {
+          intAmt = calculateInterest(amount, overdueDays);
+        }
+      } catch {
+        intAmt = calculateInterest(amount, overdueDays);
+      }
+      interestStr = `<td class="right">${Number(intAmt || 0).toFixed(2)}</td>`;
     }
 
     return `
@@ -90,7 +113,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
         <td class="right">${amount.toFixed(2)}</td>
         <td class="center">${termDays}</td>
         <td class="center">${totalDueDays}</td>
-        <td class="center ${dueDays > 0 ? 'red' : ''}">${dueDays}</td>
+        <td class="center ${rawDueDays > 0 ? 'red' : ''}">${rawDueDays}</td>
         <td class="right">${amount.toFixed(2)}</td>
         ${interestStr}
       </tr>
@@ -345,9 +368,9 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
         <div id="pdf-page">
         <div class="container">
           <div class="header">
-            <div class="year">2026 - 2027</div>
+            <div class="year">${finYear}</div>
             <div class="company-name">${companyName}</div>
-            <div class="company-address">${companyAddress}</div>
+            ${companyAddress ? `<div class="company-address">${companyAddress}</div>` : ''}
           </div>
           
           <div class="report-title">${title}</div>
@@ -369,7 +392,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
                 <th class="center">TOTAL DUE</th>
                 <th class="center">DUE DAYS</th>
                 <th class="right">O/S AMOUNT</th>
-                ${withInterest ? '<th class="right">INTEREST</th>' : ''}
+                ${withInterest ? `<th class="right">INTEREST${interestBase === 'basic' ? ' (BASIC)' : ''}</th>` : ''}
               </tr>
             </thead>
             <tbody>
@@ -384,7 +407,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             <tr>
               <td></td>
               <td></td>
-              <td class="right" style="color: #1a1a1a; font-weight: bold;">Interest</td>
+              <td class="right" style="color: #1a1a1a; font-weight: bold;">Interest${interestBase === 'basic' ? ' (Basic)' : ''}</td>
               <td class="right">${totals.interestAmount.toFixed(2)}</td>
             </tr>
             ` : ''}
@@ -416,15 +439,15 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
 
           ${totals.selectedBillAmount > 0 ? `
           <div style="border: 1px solid #424096; margin-top: 12px;">
-            <div class="green-header">Bills Total O/s</div>
+            <div class="green-header">Bills Total O/s ${interestBase === 'basic' ? '(Basic Mode)' : ''}</div>
             <div style="padding: 10px; background-color: #9C8DCE22;">
               ${withInterest ? `
-              <div class="summary-line"><div class="lbl">Bills Interest Amount:</div><span>${totals.interestAmount.toFixed(2)}</span></div>
+              <div class="summary-line"><div class="lbl">Bills Interest Amount${interestBase === 'basic' ? ' (Basic)' : ''}:</div><span>${totals.interestAmount.toFixed(2)}</span></div>
               <div class="summary-line"><div class="lbl">GST(5%):</div><span>+ ${totals.gst.toFixed(2)}</span></div>
               <div class="summary-line border-bottom"><div class="lbl">TDS(10%):</div><span>- ${totals.tds.toFixed(2)}</span></div>
               <div class="summary-line"><div class="lbl">Net Interest Amount After TDS:</div><span>${totals.netInterest.toFixed(2)}</span></div>
               ` : ''}
-              <div class="summary-line border-bottom"><div class="lbl">Bill Amount:</div><span>${totals.selectedBillAmount.toFixed(2)}</span></div>
+              <div class="summary-line border-bottom"><div class="lbl">Bill Amount${interestBase === 'basic' ? ' (Basic)' : ''}:</div><span>${totals.selectedBillAmount.toFixed(2)}</span></div>
               <div class="summary-line"><div class="lbl" style="font-weight: bold;">Total Selected Bill O/s:</div><span style="font-weight: bold;">${(withInterest ? totals.totalSelectedOs : totals.selectedBillAmount).toFixed(2)}</span></div>
             </div>
             <div class="green-footer">
@@ -441,8 +464,23 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
   `;
 
   try {
+    let prefix = 'sales_os';
+    if (data.reportType) {
+      prefix = data.reportType;
+    } else {
+      const lowerTitle = (title || '').toLowerCase();
+      if (lowerTitle.includes('purchase')) {
+        prefix = 'purchase_os';
+      } else if (lowerTitle.includes('gp') || lowerTitle.includes('general')) {
+        prefix = 'gp_os';
+      } else {
+        prefix = 'sales_os';
+      }
+    }
+    const pdfFileName = formatPdfFileName(prefix);
+
     // Instead of using native print preview, we dispatch the HTML to our custom in-app global modal
-    usePdfStore.getState().openPreview(html);
+    usePdfStore.getState().openPreview(html, pdfFileName);
   } catch (error) {
     console.error("Failed to generate or share PDF", error);
   }

@@ -14,6 +14,7 @@ import type { SalesOsStackParamList, SalesOsBroker, SalesOsParty, SalesOsInvoice
 import { formatCurrency } from '../../utils/currency';
 import { toDDMMYY } from '../../utils/formatDate';
 import { generateOutstandingReportPDF } from '../../utils/pdfGenerator';
+import { useCompanyStore } from '../../store/companyStore';
 
 type Props = {
   navigation: NativeStackNavigationProp<SalesOsStackParamList, 'SalesOsBrokerDetail'>;
@@ -22,6 +23,10 @@ type Props = {
 
 export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { brokerId, brokerName, filter } = route.params;
+  const { selectedCompany, companies } = useCompanyStore();
+  const currentCompany = filter?.companyId
+    ? (companies.find((c) => String(c.recordId || c.id) === String(filter.companyId)) || selectedCompany)
+    : selectedCompany;
   const [broker, setBroker] = useState<SalesOsBroker | undefined>(undefined);
   const [parties, setParties] = useState<SalesOsParty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,9 +84,9 @@ export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }
     { key: 'outstanding', label: 'Amount', flex: 1.4, render: (inv) => <GridText>{`₹${inv.outstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}</GridText> },
     ...(showInterest ? [{
       key: 'interest',
-      label: 'Interest',
+      label: interestCalc.interestBase === 'basic' ? 'Int (Basic)' : 'Interest',
       flex: 1.3,
-      render: (inv: any) => <GridText>{`₹ ${interestCalc.calculateBillInterest(inv.outstanding ?? inv.balance ?? inv.netBalance ?? 0, inv.totalDueDays ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}</GridText>
+      render: (inv: any) => <GridText>{`₹ ${interestCalc.calculateBillInterest(inv).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}</GridText>
     }] : [])
   ];
 
@@ -107,8 +112,8 @@ export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }
       .filter((p) => p.invoices.length > 0);
 
     const billsToPrint = partySections.flatMap((p) => p.invoices);
-    const billAmountTotal = billsToPrint.reduce((sum, inv) => sum + inv.outstanding, 0);
-    const intAmountTotal = Math.round(billsToPrint.reduce((sum, inv) => sum + interestCalc.calculateBillInterest(inv.outstanding, inv.totalDueDays ?? 0), 0));
+    const billAmountTotal = interestCalc.calculateSelectedBillAmount(billsToPrint);
+    const intAmountTotal = Math.round(interestCalc.calculateTotalInterest(billsToPrint));
     const gst = intAmountTotal * 0.05;
     const tds = Math.round(intAmountTotal * 0.10);
     const netInterest = intAmountTotal + gst - tds;
@@ -116,8 +121,8 @@ export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }
 
     await generateOutstandingReportPDF({
       title: 'Broker Wise Sales Outstanding Report',
-      companyName: 'VARNI TEXTILE',
-      companyAddress: 'PLOT NO. 147 TO 151,SUNSHINE IND. ESTATE PART-1, NR. SAYAN SUGAR FACTORY, SAYAN, SURAT, GUJARAT, 394130',
+      companyName: currentCompany?.name || '',
+      companyAddress: currentCompany?.city || '',
       partyName: '',
       partyAddress: '',
       partyBroker: '',
@@ -128,6 +133,7 @@ export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }
       date: new Date().toISOString(),
       invoices: billsToPrint,
       showInterest,
+      interestBase: interestCalc.interestBase,
       totals: {
         totalOs: broker.totalOs,
         selectedBillAmount: billAmountTotal,
@@ -231,7 +237,7 @@ export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }
             : (party.bills || []);
 
           const partySelectedInvoices = partyBills.filter(b => selectedIds.includes(b.id));
-          const partySelectedTotal = partySelectedInvoices.reduce((sum, inv) => sum + (inv.outstanding || 0), 0);
+          const partySelectedTotal = interestCalc.calculateSelectedBillAmount(partySelectedInvoices);
 
           if (partyBills.length === 0) return null;
 
@@ -248,7 +254,7 @@ export const SalesOsBrokerDetailScreen: React.FC<Props> = ({ navigation, route }
                     <InlineInterestCalculator
                       {...interestCalc}
                       selectedBillAmount={partySelectedTotal}
-                      totalInterest={partySelectedInvoices.reduce((sum, inv) => sum + interestCalc.calculateBillInterest((inv as any).outstanding ?? (inv as any).balance ?? (inv as any).netBalance ?? 0, inv.totalDueDays ?? 0), 0)}
+                      totalInterest={interestCalc.calculateTotalInterest(partySelectedInvoices)}
                     />
                   </View>
                 )}

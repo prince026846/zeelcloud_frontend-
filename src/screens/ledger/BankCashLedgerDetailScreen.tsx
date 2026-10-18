@@ -4,6 +4,7 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { GradientHeader } from '../../components/GradientHeader';
 import { SearchBar } from '../../components/SearchBar';
 import { DateField } from '../../components/DateField';
+import { LedgerDateField } from '../../components/LedgerDateField';
 import { EmptyState } from '../../components/EmptyState';
 import { ZIcon as Icon } from '../../components/ZIcon';
 import { ledgerApi } from '../../services/api';
@@ -12,6 +13,8 @@ import { useSyncStore } from '../../store/syncStore';
 import { formatCurrency } from '../../utils/currency';
 import { toDDMMYYYY } from '../../utils/formatDate';
 import { generateLedgerPdf } from '../../utils/ledgerPdfGenerator';
+import { processOpeningBalance, formatLedgerBalance } from '../../utils/ledgerUtils';
+import { QuickDateRange, getDefaultLedgerDates, calculateFromDateForRange } from '../../utils/dateRange';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../theme';
 import type { AppStackParamList, NormalizedLedgerTransaction } from '../../types';
 
@@ -41,22 +44,6 @@ const cleanTransDetails = (raw?: string | null): string => {
   return str;
 };
 
-/**
- * Format balance with Dr / Cr indicator.
- * Displays "₹0.00" without Dr/Cr when balance is 0.
- */
-const formatLedgerBalance = (balance: number): { text: string; isZero: boolean; isDr: boolean } => {
-  if (Math.abs(balance) < 0.005) {
-    return { text: formatCurrency(0), isZero: true, isDr: true };
-  }
-  const isDr = balance > 0;
-  return {
-    text: `${formatCurrency(Math.abs(balance))} ${isDr ? 'Dr' : 'Cr'}`,
-    isZero: false,
-    isDr,
-  };
-};
-
 export const BankCashLedgerDetailScreen: React.FC = () => {
   const route = useRoute<BankCashLedgerDetailRouteProp>();
   const { accountId, title } = route.params;
@@ -71,21 +58,19 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   
-  // Default dates using local date to prevent timezone backward shift
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}-01`;
-  });
-  const [toDate, setToDate] = useState(() => {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  });
+  // Default dates: Week range (From: Current date - 7 days, To: Current date)
+  const defaultDates = useMemo(() => getDefaultLedgerDates(), []);
+  const [selectedRange, setSelectedRange] = useState<QuickDateRange>(defaultDates.selectedRange);
+  const [fromDate, setFromDate] = useState(defaultDates.fromDate);
+  const [toDate, setToDate] = useState(defaultDates.toDate);
   const [isCommonCompany, setIsCommonCompany] = useState(false);
+
+  const handleToDateChange = (newToDate: string) => {
+    setToDate(newToDate);
+    if (selectedRange !== 'custom') {
+      setFromDate(calculateFromDateForRange(selectedRange, newToDate));
+    }
+  };
 
   // Debounce search
   useEffect(() => {
@@ -117,10 +102,12 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
     return () => { mounted = false; };
   }, [accountId, isCommonCompany, selectedCompany?.id, fromDate, toDate]);
 
-  // Normalize API data once, computing running balance from opening balance
-  const normalizedData = useMemo<NormalizedLedgerTransaction[]>(() => {
-    let running = openingBalance;
-    return data.map((item, index) => {
+  // Process opening balance and normalize trade transactions for Bank/Cash Ledger
+  const { effectiveOpeningBalance, normalizedData } = useMemo(() => {
+    const { effectiveOpeningBalance: effOb, genuineTransactions } = processOpeningBalance(data, openingBalance);
+
+    let running = effOb;
+    const normalized = genuineTransactions.map((item, index) => {
       const dr = typeof item.vn_debit_amt === 'number' ? item.vn_debit_amt : 0;
       const cr = typeof item.vn_credit_amt === 'number' ? item.vn_credit_amt : 0;
       const isDr = dr > 0;
@@ -158,6 +145,11 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
         searchKey,
       };
     });
+
+    return {
+      effectiveOpeningBalance: effOb,
+      normalizedData: normalized,
+    };
   }, [data, openingBalance]);
 
   // Filter normalized data using debounced search
@@ -169,15 +161,17 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
 
   const closingBalance = normalizedData.length > 0 
     ? normalizedData[normalizedData.length - 1].runningBalance 
-    : openingBalance;
+    : effectiveOpeningBalance;
 
   const handleGeneratePdf = () => {
     generateLedgerPdf({
       partyName: title,
       companyName: selectedCompany?.name || '',
+      address: selectedCompany?.city || '',
+      gstNo: selectedCompany?.gstinNo || '',
       fromDate,
       toDate,
-      openingBalance,
+      openingBalance: effectiveOpeningBalance,
       closingBalance,
       transactions: filteredData.map((t) => ({
         date: t.date,
@@ -193,8 +187,7 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
   };
 
   const renderHeader = () => {
-    const obFormatted = formatLedgerBalance(openingBalance);
-    const obDate = fromDate ? toDDMMYYYY(fromDate) : normalizedData[0]?.displayDate || '';
+    const obFormatted = formatLedgerBalance(effectiveOpeningBalance);
     return (
       <View style={styles.listHeaderRow}>
         <View style={styles.listHeaderTop}>
@@ -207,27 +200,12 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
             {obFormatted.text}
           </Text>
         </View>
-        <View style={styles.openingTransactionRow}>
-          <View style={styles.itemRowTop}>
-            <View style={styles.leftMetaContainer}>
-              <Text style={styles.itemDate}>{obDate}</Text>
-            </View>
-            <Text style={[styles.itemAmount, obFormatted.isZero ? styles.textZero : obFormatted.isDr ? styles.textDr : styles.textCr]}>
-              {obFormatted.text}
-            </Text>
-          </View>
-          <View style={styles.itemRowBottom}>
-            <Text style={styles.openingItemParticulars}>OPENING BALANCE</Text>
-            <Text style={styles.itemBalance}>
-              {formatCurrency(Math.abs(openingBalance))}
-            </Text>
-          </View>
-        </View>
       </View>
     );
   };
 
   const renderItem = ({ item }: { item: NormalizedLedgerTransaction }) => {
+    const balFormatted = formatLedgerBalance(item.runningBalance);
     return (
       <View style={styles.listItem}>
         {/* LINE 1: [Voucher Type]  [Date]  [Voucher No in Red]    [Amount Dr/Cr] */}
@@ -249,8 +227,17 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
           <Text style={styles.itemParticulars} numberOfLines={2}>
             {item.particulars}
           </Text>
-          <Text style={styles.itemBalance}>
-            {formatCurrency(Math.abs(item.runningBalance))}
+          <Text
+            style={[
+              styles.itemBalance,
+              balFormatted.isZero
+                ? styles.textZero
+                : balFormatted.isDr
+                ? styles.textDr
+                : styles.textCr,
+            ]}
+          >
+            {balFormatted.text}
           </Text>
         </View>
 
@@ -281,11 +268,24 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
         <View style={styles.dateRow}>
           <View style={styles.dateLabelWrapper}><Text style={styles.dateLabel}>From :</Text></View>
           <View style={styles.dateItem}>
-            <DateField value={fromDate} onChange={setFromDate} placeholder="From Date" />
+            <LedgerDateField
+              value={fromDate}
+              toDate={toDate}
+              selectedRange={selectedRange}
+              onSelectRange={(range, newFrom) => {
+                setSelectedRange(range);
+                setFromDate(newFrom);
+              }}
+              onCustomDateChange={(newFrom) => {
+                setSelectedRange('custom');
+                setFromDate(newFrom);
+              }}
+              placeholder="From Date"
+            />
           </View>
           <View style={styles.dateLabelWrapper}><Text style={styles.dateLabel}> To :</Text></View>
           <View style={styles.dateItem}>
-            <DateField value={toDate} onChange={setToDate} placeholder="To Date" />
+            <DateField value={toDate} onChange={handleToDateChange} placeholder="To Date" />
           </View>
         </View>
         
@@ -313,7 +313,7 @@ export const BankCashLedgerDetailScreen: React.FC = () => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
-      ) : filteredData.length === 0 && openingBalance === 0 ? (
+      ) : filteredData.length === 0 && effectiveOpeningBalance === 0 ? (
         <EmptyState icon="file-document-outline" title="No Transactions" subtitle="No ledger entries found for this period." />
       ) : (
         <>

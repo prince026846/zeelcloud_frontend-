@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
 import { ZIcon as Icon } from '../../components/ZIcon';
 import { Card } from '../../components/Card';
@@ -7,6 +7,8 @@ import { PrimaryButton } from '../../components/PrimaryButton';
 import { Checkbox } from '../../components/Checkbox';
 import { PERMISSION_MODULES } from '../../constants/options';
 import { Colors, Typography, Spacing } from '../../theme';
+import { useCompanyStore } from '../../store/companyStore';
+import { useAuthStore } from '../../store/authStore';
 import type { SubUser } from '../../types';
 
 export interface SubUserFormValues {
@@ -51,7 +53,17 @@ export const SubUserForm: React.FC<SubUserFormProps> = ({
   const [password, setPassword] = useState(initial?.password ?? '');
   const [email, setEmail] = useState(initial?.email ?? '');
   const [phone, setPhone] = useState(initial?.phone ?? '');
-  const [companyName, setCompanyName] = useState(initial?.companyName ?? 'Zeel Textiles Pvt. Ltd.');
+  const { selectedCompany, companies } = useCompanyStore();
+  const currentUser = useAuthStore((s) => s.user);
+  const backendCompanyName = selectedCompany?.name || companies[0]?.name || currentUser?.companyName || '';
+
+  const [companyName, setCompanyName] = useState(initial?.companyName ?? backendCompanyName);
+
+  useEffect(() => {
+    if (!initial?.companyName && !companyName && backendCompanyName) {
+      setCompanyName(backendCompanyName);
+    }
+  }, [backendCompanyName, initial?.companyName]);
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
   const [isSalesOrderCreationAllowed, setIsSalesOrderCreationAllowed] = useState(initial?.isSalesOrderCreationAllowed ?? false);
   const [allowed, setAllowed] = useState<string[]>(initial?.allowedModules ?? []);

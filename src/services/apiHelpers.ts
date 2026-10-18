@@ -62,10 +62,19 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
   const base = API_BASE_URL.replace(/\/+$/, '');
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const requestHeaders: Record<string, string> = {
+    ...authHeaders(),
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+
+  if (init?.body instanceof FormData) {
+    delete requestHeaders['Content-Type'];
+  }
+
   const response = await fetch(`${base}${cleanPath}`, {
     ...init,
     credentials: 'include',
-    headers: { ...authHeaders(), ...(init?.headers as Record<string, string> | undefined) },
+    headers: requestHeaders,
   });
 
   const accountIdAtEnd = getActiveAccountId();
@@ -451,11 +460,39 @@ export const mapGpRegisterEntry = (item: JsonRecord): GpRegisterEntry => ({
   description: asString(item.vv_description) || undefined,
 });
 
+export const parsePartyAddress = (item: JsonRecord): string | undefined => {
+  const directAddress = asString(item.vv_address);
+  const addr1 = asString(item.vv_address1);
+  const area = asString(item.vv_area);
+  const city = asString(item.vv_city);
+
+  if (directAddress) {
+    const parts = [directAddress];
+    if (area && !directAddress.toLowerCase().includes(area.toLowerCase())) {
+      parts.push(area);
+    }
+    if (city && !directAddress.toLowerCase().includes(city.toLowerCase())) {
+      parts.push(city);
+    }
+    return parts.join(', ');
+  }
+
+  const parts: string[] = [];
+  [addr1, area, city].forEach((part) => {
+    if (part && !parts.some((p) => p.toLowerCase() === part.toLowerCase())) {
+      parts.push(part);
+    }
+  });
+
+  return parts.length ? parts.join(', ') : undefined;
+};
+
 export const mapPartyLedgerAccount = (item: JsonRecord): PartyLedgerAccount => ({
   id: String(item.vn_account_id ?? item.id ?? ''),
   name: asString(item.vv_party_name),
   balance: asNumber(item.balance),
   phone: asString(item.vv_mobile),
+  address: parsePartyAddress(item),
 });
 
 export const mapBankAccount = (item: JsonRecord, index: number): BankAccount => {
@@ -579,19 +616,25 @@ const composePartyAddress = (account: JsonRecord): string => {
 };
 
 const mapBillItem = (row: JsonRecord, module: 'sales' | 'purchase' | 'gp'): BillDetailItem => {
+  const hsnRaw = row.vn_hsn_code ?? row.hsn_code ?? row.hsnCode;
+  const hsnCode = hsnRaw != null && String(hsnRaw).trim() !== '' ? String(hsnRaw).trim() : undefined;
+  const rateVal = asNumber(row.vn_rate ?? row.rate);
+
   const base = {
     name: asString(row.vv_item_name) || asString(row.vv_item_code),
     amount: asNumber(row.vn_amount),
+    rate: rateVal > 0 ? rateVal : undefined,
+    hsnCode,
   };
   if (module === 'sales') {
     return {
       ...base,
-      hsnCode: asString(row.vn_hsn_code),
       design: asString(row.vv_item_code), // Fallback map if client clarifies it's code
       taka: asNumber(row.vn_taka_no),
       pallu: asNumber(row.vn_cheese), // OG "Pallu" column binds VN_Cheese
       meter: asNumber(row.vn_meter),
       weight: asNumber(row.vn_weight),
+      cut: asNumber(row.vn_cut),
       sgstRate: asNumber(row.vn_sgst_rate ?? row.sgst_rate),
       cgstRate: asNumber(row.vn_cgst_rate ?? row.cgst_rate),
       igstRate: asNumber(row.vn_igst_rate ?? row.igst_rate),
@@ -627,9 +670,11 @@ export const mapBillDetail = (record: JsonRecord, module: 'sales' | 'purchase' |
     partyAddress: composePartyAddress(asRecord(record.account)),
     deliveryPartyName: asString(record.delivery_party_name) || asString(asRecord(asRecord(record.account).delivery_party).vv_party_name),
     vehicalNo: asString(record.vv_vehical_no),
+    transporter: asString(record.vv_transport) || undefined,
     ewayBillNo: asString(record.vv_eway_bill_no),
     irn: asString(record.vv_irn),
     ackNo: asString(record.vv_ack_no),
+    ackDate: asString(record.vv_ack_date) || undefined,
     brokerName: asString(record.vv_brocker_name) || undefined,
     gstNo: asString(asRecord(asRecord(record.account).party).vv_gstin_no) || undefined,
     mobileNo: asString(asRecord(asRecord(record.account).party).vv_mobile) || asString(asRecord(asRecord(record.account).party).phone) || undefined,
@@ -649,6 +694,9 @@ export const mapBillDetail = (record: JsonRecord, module: 'sales' | 'purchase' |
     igst: asNumber(record.vn_igst),
     sgst: asNumber(record.vn_sgst),
     cgst: asNumber(record.vn_cgst),
+    igstPerc: asNumber(record.vn_igst_perc),
+    sgstPerc: asNumber(record.vn_sgst_perc),
+    cgstPerc: asNumber(record.vn_cgst_perc),
     addLess: asNumber(record.vn_add_less),
     tcs: asNumber(record.vn_tcs_amount),
     roundOf: asNumber(record.vn_round_of),

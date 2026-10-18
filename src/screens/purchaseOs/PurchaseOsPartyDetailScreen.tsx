@@ -16,6 +16,7 @@ import type { PurchaseOsStackParamList, PurchaseOsParty, PurchaseOsInvoice } fro
 import { formatCurrency } from '../../utils/currency';
 import { toDDMMYY } from '../../utils/formatDate';
 import { generateOutstandingReportPDF } from '../../utils/pdfGenerator';
+import { useCompanyStore } from '../../store/companyStore';
 
 type Props = {
   navigation: NativeStackNavigationProp<PurchaseOsStackParamList, 'PurchaseOsPartyDetail'>;
@@ -25,6 +26,10 @@ type Props = {
 
 export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { partyId, partyName, filter } = route.params;
+  const { selectedCompany, companies } = useCompanyStore();
+  const currentCompany = filter?.companyId
+    ? (companies.find((c) => String(c.recordId || c.id) === String(filter.companyId)) || selectedCompany)
+    : selectedCompany;
   const [party, setParty] = useState<PurchaseOsParty | undefined>(undefined);
   const [invoices, setInvoices] = useState<PurchaseOsInvoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,9 +100,9 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
     { key: 'outstanding', label: 'Amount', flex: showInterest ? 1.1 : 1.4, render: (inv) => <GridText>{`₹${inv.outstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}</GridText> },
     ...(showInterest ? [{
       key: 'interest',
-      label: 'Interest',
+      label: interestCalc.interestBase === 'basic' ? 'Int (Basic)' : 'Interest',
       flex: 1.0,
-      render: (inv: any) => <GridText>{`₹ ${interestCalc.calculateBillInterest(inv.outstanding ?? inv.balance ?? inv.netBalance ?? 0, inv.totalDueDays ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}</GridText>
+      render: (inv: any) => <GridText>{`₹ ${interestCalc.calculateBillInterest(inv).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}</GridText>
     }] : [])
   ];
 
@@ -105,8 +110,8 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
   const handleShare = async () => {
     if (!party) return;
     const billsToPrint = selectedIds.length > 0 ? selectedInvoices : visibleInvoices;
-    const billAmountTotal = billsToPrint.reduce((sum, inv) => sum + inv.outstanding, 0);
-    const intAmountTotal = Math.round(billsToPrint.reduce((sum, inv) => sum + interestCalc.calculateBillInterest(inv.outstanding, inv.totalDueDays ?? 0), 0));
+    const billAmountTotal = interestCalc.calculateSelectedBillAmount(billsToPrint);
+    const intAmountTotal = Math.round(interestCalc.calculateTotalInterest(billsToPrint));
     const gst = intAmountTotal * 0.05;
     const tds = Math.round(intAmountTotal * 0.10);
     const netInterest = intAmountTotal + gst - tds;
@@ -114,8 +119,9 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
 
     await generateOutstandingReportPDF({
       title: 'Party Wise Purchase Outstanding Report',
-      companyName: 'VARNI TEXTILE',
-      companyAddress: 'PLOT NO. 147 TO 151,SUNSHINE IND. ESTATE PART-1, NR. SAYAN SUGAR FACTORY, SAYAN, SURAT, GUJARAT, 394130',
+      reportType: 'purchase_os',
+      companyName: currentCompany?.name || '',
+      companyAddress: currentCompany?.city || '',
       partyName: party.name,
       partyAddress: party.city || '',
       partyBroker: brokerName || 'DIRECT',
@@ -124,6 +130,7 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
       date: new Date().toISOString(),
       invoices: billsToPrint,
       showInterest,
+      interestBase: interestCalc.interestBase,
       totals: {
         totalOs: party.totalOs,
         selectedBillAmount: billAmountTotal,
@@ -223,8 +230,8 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
             <View style={styles.sectionPad}>
               <InlineInterestCalculator
                 {...interestCalc}
-                selectedBillAmount={selectedTotal}
-                totalInterest={selectedInvoices.reduce((sum, inv) => sum + interestCalc.calculateBillInterest((inv as any).outstanding ?? (inv as any).balance ?? (inv as any).netBalance ?? 0, inv.totalDueDays ?? 0), 0)}
+                selectedBillAmount={interestCalc.calculateSelectedBillAmount(selectedInvoices)}
+                totalInterest={interestCalc.calculateTotalInterest(selectedInvoices)}
               />
             </View>
           )}

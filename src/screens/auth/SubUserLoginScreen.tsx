@@ -15,7 +15,7 @@ import { ZIcon as Icon } from '../../components/ZIcon';
 import { useAuthStore } from '../../store/authStore';
 import { InputField } from '../../components/InputField';
 import { PrimaryButton } from '../../components/PrimaryButton';
-import { API_BASE_URL } from '../../config';
+import { ZeelCloudLogo } from '../../components/ZeelCloudLogo';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme';
 import type { RootStackParamList } from '../../types';
 
@@ -88,9 +88,7 @@ export const SubUserLoginScreen: React.FC<Props> = ({ navigation }) => {
         {/* Logo */}
         <View style={styles.logoSection}>
           <View style={styles.logoRow}>
-            <View style={styles.logoIcon}>
-              <Icon name="account-group-outline" size={30} color={Colors.white} />
-            </View>
+            <ZeelCloudLogo size={72} />
           </View>
           <Text style={styles.brand}>
             ZEEL <Text style={styles.brandLight}>CLOUD</Text>
@@ -151,8 +149,8 @@ export const SubUserLoginScreen: React.FC<Props> = ({ navigation }) => {
           />
 
           {/* Navigate back to Admin Login */}
-          <TouchableOpacity 
-            style={styles.adminLinkBtn} 
+          <TouchableOpacity
+            style={styles.adminLinkBtn}
             onPress={() => navigation.navigate('Login')}
             activeOpacity={0.8}
           >
@@ -172,7 +170,6 @@ export const SubUserLoginScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <Text style={styles.version}>Version 1.0.0</Text>
-        <Text style={styles.serverHint}>server: {API_BASE_URL}</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -191,14 +188,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xxl,
   },
   logoRow: { marginBottom: Spacing.md },
-  logoIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   brand: {
     fontSize: Typography.fontSizes.xxl,
     fontWeight: Typography.fontWeights.extraBold,
@@ -310,11 +299,5 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSizes.xs,
     color: Colors.textMuted,
     marginTop: Spacing.xl,
-  },
-  serverHint: {
-    textAlign: 'center',
-    fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 4,
   },
 });

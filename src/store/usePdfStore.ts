@@ -4,20 +4,22 @@ import { registerStoreReset } from './storeRegistry';
 interface PdfState {
   isVisible: boolean;
   htmlContent: string;
-  openPreview: (html: string) => void;
+  fileName?: string;
+  openPreview: (html: string, fileName?: string) => void;
   closePreview: () => void;
   reset: () => void;
 }
 
 export const usePdfStore = create<PdfState>((set) => {
-  const reset = () => set({ isVisible: false, htmlContent: '' });
+  const reset = () => set({ isVisible: false, htmlContent: '', fileName: undefined });
   registerStoreReset(reset);
 
   return {
     isVisible: false,
     htmlContent: '',
-  openPreview: (html) => set({ isVisible: true, htmlContent: html }),
-  closePreview: () => set({ isVisible: false, htmlContent: '' }),
-  reset,
+    fileName: undefined,
+    openPreview: (html, fileName) => set({ isVisible: true, htmlContent: html, fileName }),
+    closePreview: () => set({ isVisible: false, htmlContent: '', fileName: undefined }),
+    reset,
   };
 });

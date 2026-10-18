@@ -66,7 +66,7 @@ const PREVIEW_FIT_SCRIPT = `
 `;
 
 export const GlobalPdfPreview = () => {
-  const { isVisible, htmlContent, closePreview } = usePdfStore();
+  const { isVisible, htmlContent, fileName, closePreview } = usePdfStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const webRef = useRef<WebView>(null);
 
@@ -78,9 +78,11 @@ export const GlobalPdfPreview = () => {
       const canShare = await Sharing.isAvailableAsync();
       
       if (canShare && base64) {
-        // 2. Define a safe path in your app's own Document Directory
-        const fileName = 'invoice_' + Date.now() + '.pdf';
-        const newUri = FileSystem.documentDirectory + fileName;
+        // 2. Define a safe path in your app's own Document Directory using dynamic file name
+        const finalFileName = (fileName && fileName.trim())
+          ? (fileName.endsWith('.pdf') ? fileName.trim() : `${fileName.trim()}.pdf`)
+          : `report_${Date.now()}.pdf`;
+        const newUri = FileSystem.documentDirectory + finalFileName;
         
         // 3. Dump the Base64 data directly to the new file, bypassing Android's locked cache!
         await FileSystem.writeAsStringAsync(newUri, base64, {

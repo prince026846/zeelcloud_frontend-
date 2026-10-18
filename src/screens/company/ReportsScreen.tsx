@@ -45,6 +45,15 @@ const reportModules: ReportModule[] = [
   },
   { label: 'Bank / Cash Ledger', desc: 'Bank & cash balances', icon: 'bank-outline', color: '#06B6D4', route: 'BankCashLedger', permissionKey: 'Bank Cash Ledger' },
   { label: 'Party Ledger', desc: 'Party-wise balances', icon: 'account-cash-outline', color: '#EC4899', route: 'PartyLedger', permissionKey: 'Party Ledger' },
+  {
+    label: 'Quotations',
+    desc: 'Draft quotes, catalog & PDF preview',
+    icon: 'clipboard-text-outline',
+    color: '#6366F1',
+    route: 'QuotationStack',
+    permissionKey: 'Quotations',
+    permissionKeys: ['Quotations', 'Sales Order', 'Sales Orders'],
+  },
 ];
 
 export const ReportsScreen: React.FC = () => {

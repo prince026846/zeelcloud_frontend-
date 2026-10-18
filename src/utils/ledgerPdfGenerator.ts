@@ -1,12 +1,16 @@
 import { usePdfStore } from '../store/usePdfStore';
 import { formatCurrency } from './currency';
 import { toDDMMYYYY } from './formatDate';
+import { formatPdfFileName } from './pdfFileName';
+import { isOpeningBalanceRecord } from './ledgerUtils';
 
 export interface LedgerPdfData {
   partyName: string;
+  partyAddress?: string;
   companyName: string;
   gstNo?: string;
-  address?: string;
+  address?: string; // Company address (legacy field)
+  companyAddress?: string; // Company address (explicit alias)
   fromDate: string; // DD/MM/YYYY or ISO
   toDate: string; // DD/MM/YYYY or ISO
   openingBalance: number;
@@ -23,15 +27,38 @@ export interface LedgerPdfData {
   }[];
 }
 
+const escapeHtml = (str?: string | null): string => {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 export const generateLedgerPdf = (data: LedgerPdfData) => {
   const formatAmount = (num: number) => num ? Math.abs(num).toFixed(2) : '0';
+  const formatDc = (num: number) => Math.abs(num) < 0.005 ? '' : num > 0 ? 'DR' : 'CR';
   
+  // Defensively exclude opening balance rows from the transaction list to prevent duplicates
+  const genuineTransactions = (data.transactions || []).filter((t) => !isOpeningBalanceRecord(t));
+
   let totalDebit = 0;
   let totalCredit = 0;
-  data.transactions.forEach(t => {
+  genuineTransactions.forEach(t => {
     totalDebit += t.debit;
     totalCredit += t.credit;
   });
+
+  const rawGst = (data.gstNo || '').trim();
+  const formattedGst = rawGst
+    ? rawGst.toLowerCase().startsWith('gst')
+      ? rawGst
+      : `GST No : ${rawGst}`
+    : '';
+  const companyAddress = (data.companyAddress || data.address || '').trim();
+  const partyAddress = (data.partyAddress || '').trim();
 
   const html = `
     <!DOCTYPE html>
@@ -177,9 +204,9 @@ export const generateLedgerPdf = (data: LedgerPdfData) => {
       <div id="pdf-page">
         <!-- Header -->
         <div class="header">
-          <div class="company-name">${data.companyName}</div>
-          ${data.gstNo ? `<div class="company-meta">GST No : ${data.gstNo}</div>` : ''}
-          ${data.address ? `<div class="company-meta">${data.address}</div>` : ''}
+          <div class="company-name">${escapeHtml(data.companyName)}</div>
+          ${formattedGst ? `<div class="company-meta">${escapeHtml(formattedGst)}</div>` : ''}
+          ${companyAddress ? `<div class="company-meta">${escapeHtml(companyAddress)}</div>` : ''}
           <div class="report-title">LEDGER REPORT</div>
         </div>
         
@@ -188,11 +215,17 @@ export const generateLedgerPdf = (data: LedgerPdfData) => {
           <table class="meta-table">
             <tr>
               <td class="meta-label">Party Name:</td>
-              <td class="meta-value">${data.partyName}</td>
+              <td class="meta-value">${escapeHtml(data.partyName)}</td>
             </tr>
+            ${partyAddress ? `
+            <tr>
+              <td class="meta-label">Address:</td>
+              <td class="meta-value">${escapeHtml(partyAddress)}</td>
+            </tr>
+            ` : ''}
             <tr>
               <td class="meta-label">Period:</td>
-              <td class="meta-value">From ${toDDMMYYYY(data.fromDate)} To ${toDDMMYYYY(data.toDate)}</td>
+              <td class="meta-value">From ${escapeHtml(toDDMMYYYY(data.fromDate))} To ${escapeHtml(toDDMMYYYY(data.toDate))}</td>
             </tr>
           </table>
         </div>
@@ -213,28 +246,28 @@ export const generateLedgerPdf = (data: LedgerPdfData) => {
           <tbody>
             <!-- Opening Balance -->
             <tr class="opening-row">
-              <td class="col-date">${toDDMMYYYY(data.fromDate)}</td>
+              <td class="col-date">${escapeHtml(toDDMMYYYY(data.fromDate))}</td>
               <td class="col-vch"></td>
               <td class="col-part">OPENING BALANCE</td>
               <td class="col-amt">${data.openingBalance > 0 ? formatAmount(data.openingBalance) : ''}</td>
               <td class="col-amt">${data.openingBalance < 0 ? formatAmount(data.openingBalance) : ''}</td>
               <td class="col-amt">${formatAmount(data.openingBalance)}</td>
-              <td class="col-dc">${data.openingBalance >= 0 ? 'DR' : 'CR'}</td>
+              <td class="col-dc">${formatDc(data.openingBalance)}</td>
             </tr>
             
             <!-- Transaction Rows -->
-            ${data.transactions.map(t => `
+            ${genuineTransactions.map(t => `
               <tr>
-                <td class="col-date">${toDDMMYYYY(t.date)}</td>
-                <td class="col-vch">${t.voucherNo || t.vchNo || ''}</td>
+                <td class="col-date">${escapeHtml(toDDMMYYYY(t.date))}</td>
+                <td class="col-vch">${escapeHtml(t.voucherNo || t.vchNo || '')}</td>
                 <td class="col-part">
-                  <div class="particulars-text">${t.particulars}</div>
-                  ${t.narration ? `<div class="narration-text">${t.narration}</div>` : ''}
+                  <div class="particulars-text">${escapeHtml(t.particulars)}</div>
+                  ${t.narration ? `<div class="narration-text">${escapeHtml(t.narration)}</div>` : ''}
                 </td>
                 <td class="col-amt">${t.debit > 0 ? formatAmount(t.debit) : ''}</td>
                 <td class="col-amt">${t.credit > 0 ? formatAmount(t.credit) : ''}</td>
                 <td class="col-amt">${formatAmount(t.runningBalance)}</td>
-                <td class="col-dc">${t.runningBalance >= 0 ? 'DR' : 'CR'}</td>
+                <td class="col-dc">${formatDc(t.runningBalance)}</td>
               </tr>
             `).join('')}
             
@@ -244,7 +277,7 @@ export const generateLedgerPdf = (data: LedgerPdfData) => {
               <td class="col-amt">${formatAmount(totalDebit + (data.openingBalance > 0 ? data.openingBalance : 0))}</td>
               <td class="col-amt">${formatAmount(totalCredit + (data.openingBalance < 0 ? Math.abs(data.openingBalance) : 0))}</td>
               <td class="col-amt">${formatAmount(data.closingBalance)}</td>
-              <td class="col-dc">${data.closingBalance >= 0 ? 'DR' : 'CR'}</td>
+              <td class="col-dc">${formatDc(data.closingBalance)}</td>
             </tr>
           </tbody>
         </table>
@@ -252,5 +285,6 @@ export const generateLedgerPdf = (data: LedgerPdfData) => {
     </body>
     </html>
   `;
-  usePdfStore.getState().openPreview(html);
+  const fileName = formatPdfFileName('ledger', data.partyName);
+  usePdfStore.getState().openPreview(html, fileName);
 };

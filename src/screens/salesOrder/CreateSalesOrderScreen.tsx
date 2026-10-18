@@ -505,7 +505,7 @@ export const CreateSalesOrderScreen: React.FC = () => {
                   </View>
 
                   {/* Item picker */}
-                  <SelectField
+                  <SearchableSelect
                     label="Item *"
                     value={it.itemName}
                     options={itemOptions}
@@ -513,6 +513,7 @@ export const CreateSalesOrderScreen: React.FC = () => {
                     onClear={() => updateItem(it.id, { itemId: null, itemName: '', color: '' })}
                     placeholder={loadingMaster ? 'Loading items…' : 'Select item'}
                     leftIcon="package-variant-closed"
+                    searchable
                   />
 
                   {/* Color — shows last-color suggestion hint or spinner */}

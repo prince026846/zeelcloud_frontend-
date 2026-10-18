@@ -23,6 +23,8 @@ interface InputFieldProps {
   error?: string;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   editable?: boolean;
+  multiline?: boolean;
+  numberOfLines?: number;
 }
 
 export const InputField: React.FC<InputFieldProps> = ({
@@ -38,16 +40,18 @@ export const InputField: React.FC<InputFieldProps> = ({
   error,
   autoCapitalize = 'none',
   editable = true,
+  multiline = false,
+  numberOfLines = 1,
 }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputWrapper, error ? styles.inputError : null, !editable && styles.inputDisabled]}>
+      <View style={[styles.inputWrapper, multiline && { height: 'auto', minHeight: 48, paddingVertical: 8 }, error ? styles.inputError : null, !editable && styles.inputDisabled]}>
         {leftIcon ? (
           <Icon name={leftIcon} size={20} color={Colors.primaryLight} style={styles.leftIcon} />
         ) : null}
         <TextInput
-          style={[styles.input, leftIcon ? styles.inputWithLeft : null]}
+          style={[styles.input, multiline && { textAlignVertical: 'top' }, leftIcon ? styles.inputWithLeft : null]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -57,6 +61,8 @@ export const InputField: React.FC<InputFieldProps> = ({
           autoCapitalize={autoCapitalize}
           autoCorrect={false}
           editable={editable}
+          multiline={multiline}
+          numberOfLines={numberOfLines}
         />
         {rightIcon ? (
           <TouchableOpacity
