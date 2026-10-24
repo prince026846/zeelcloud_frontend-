@@ -246,6 +246,74 @@ export interface CreateQuotationPayload {
   items: CreateQuotationItemPayload[];
 }
 
+export interface ProformaInvoiceItem {
+  id: string;
+  itemMasterId?: string | null;
+  itemName: string;
+  narration?: string;
+  imageUrl?: string;
+  batchNo?: string;
+  mrp: number;
+  rate: number;
+  gstPercentage: number;
+  gstAmount: number;
+  quantity: number;
+  amount: number;
+  lineNo: number;
+}
+
+export interface ProformaInvoice {
+  id: string;
+  companyId: number;
+  invoiceNo: string;
+  date: string;
+  partyId?: number | null;
+  partyName: string;
+  partyAddress?: string;
+  contactNo?: string;
+  email?: string;
+  ccEmail?: string;
+  remark?: string;
+  subtotal: number;
+  discountType: 'amount' | 'percentage';
+  discountValue: number;
+  discountAmount: number;
+  totalGstAmount: number;
+  totalAmount: number;
+  items: ProformaInvoiceItem[];
+  created: string;
+  updated: string;
+}
+
+export interface CreateProformaInvoiceItemPayload {
+  item_master_id?: string | null;
+  item_name: string;
+  narration?: string;
+  image_url?: string;
+  batch_no?: string;
+  mrp?: number;
+  rate: number;
+  quantity: number;
+  gst_percentage?: number;
+}
+
+export interface CreateProformaInvoicePayload {
+  company_id: number;
+  invoice_no?: string;
+  date: string; // YYYY-MM-DD
+  party_id?: number | null;
+  party_name: string;
+  party_address?: string;
+  contact_no?: string;
+  email?: string;
+  cc_email?: string;
+  remark?: string;
+  discount_type?: 'amount' | 'percentage';
+  discount_value?: number;
+  items: CreateProformaInvoiceItemPayload[];
+}
+
+
 // Sales OS
 export interface SalesOsParty {
   id: string;
@@ -712,6 +780,7 @@ export type AppStackParamList = {
   About: undefined;
   Contact: undefined;
   QuotationStack: undefined;
+  ProformaInvoiceStack: undefined;
 };
 
 // Account context (before / outside a company)
@@ -745,6 +814,14 @@ export type QuotationStackParamList = {
   CreateQuotation: { quotation?: Quotation } | undefined;
   QuotationDetail: { id: string };
   QuotationItemMaster: undefined;
+};
+
+export type ProformaInvoiceStackParamList = {
+  ProformaInvoiceHub: undefined;
+  ProformaInvoiceList: undefined;
+  CreateProformaInvoice: { invoice?: ProformaInvoice } | undefined;
+  ProformaInvoiceDetail: { id: string };
+  ProformaInvoiceItemMaster: undefined;
 };
 
 export type SalesOrderStackParamList = {

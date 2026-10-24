@@ -54,6 +54,15 @@ const reportModules: ReportModule[] = [
     permissionKey: 'Quotations',
     permissionKeys: ['Quotations', 'Sales Order', 'Sales Orders'],
   },
+  {
+    label: 'Pro Forma Invoice',
+    desc: 'PI creation, numbering & PDF preview',
+    icon: 'file-document-edit-outline',
+    color: '#0EA5E9',
+    route: 'ProformaInvoiceStack',
+    permissionKey: 'Proforma Invoice',
+    permissionKeys: ['Proforma Invoice', 'Quotations', 'Sales Order', 'Sales Orders'],
+  },
 ];
 
 export const ReportsScreen: React.FC = () => {

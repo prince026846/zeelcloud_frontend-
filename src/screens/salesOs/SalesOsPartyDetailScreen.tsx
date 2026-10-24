@@ -1,5 +1,5 @@
 import { Switch } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Linking,
+  useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -23,6 +26,61 @@ import { formatCurrency } from '../../utils/currency';
 import { toDDMMYY } from '../../utils/formatDate';
 import { generateOutstandingReportPDF } from '../../utils/pdfGenerator';
 import { useCompanyStore } from '../../store/companyStore';
+import { layoutSalesOsBillColumns, salesOsTermHeader } from './salesOsBillLayout';
+
+// This grid is sized in fixed pixels so every default column fits a 360dp phone.
+// Uncapped Android font scaling widens the 10/11px text until headers break
+// mid-word and amounts clip. The cap is only on this table; the summary, toggles,
+// and buttons above it still follow the system font size.
+const PARTY_GRID_FONT_CAP = 1;
+const partyGridMetrics = {
+  cellPaddingHorizontal: 2,
+  maxFontSizeMultiplier: PARTY_GRID_FONT_CAP,
+  constrainText: true,
+} as const;
+
+function PartyGridText(props: React.ComponentProps<typeof GridText>) {
+  return <GridText {...props} fitWidth maxFontSizeMultiplier={PARTY_GRID_FONT_CAP} />;
+}
+
+function GridHScroll({
+  enabled,
+  width,
+  viewportWidth,
+  scrollRef,
+  onScroll,
+  showIndicator = false,
+  pointerEvents,
+  children,
+}: {
+  enabled: boolean;
+  width: number;
+  viewportWidth: number;
+  scrollRef?: React.RefObject<ScrollView | null>;
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  showIndicator?: boolean;
+  pointerEvents?: 'auto' | 'none' | 'box-none' | 'box-only';
+  children: React.ReactNode;
+}) {
+  if (!enabled) return <View style={{ width: '100%' }}>{children}</View>;
+  return (
+    <ScrollView
+      ref={scrollRef}
+      horizontal
+      nestedScrollEnabled
+      directionalLockEnabled
+      bounces={false}
+      overScrollMode="never"
+      pointerEvents={pointerEvents}
+      showsHorizontalScrollIndicator={showIndicator}
+      scrollEventThrottle={16}
+      onScroll={onScroll}
+      style={{ width: viewportWidth }}
+    >
+      <View style={{ width }}>{children}</View>
+    </ScrollView>
+  );
+}
 
 type Props = {
   navigation: NativeStackNavigationProp<SalesOsStackParamList, 'SalesOsPartyDetail'>;
@@ -43,6 +101,10 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
   const [showInterest, setShowInterest] = useState(false);
   const interestCalc = useInlineInterest();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const { width: windowWidth } = useWindowDimensions();
+  const headerScrollRef = useRef<ScrollView>(null);
+  const bodyScrollRef = useRef<ScrollView>(null);
+  const scrollX = useRef(0);
 
   useEffect(() => {
     setLoading(true);
@@ -82,12 +144,27 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
   // OG summary: broker comes from the party's bills (vv_brocker_name).
   const brokerName = invoices.find((i) => i.brokerName)?.brokerName;
 
-  // OG .NET grid (SalesOsPartyDetailPage): ✓ | Ref Cmp | Book Code | Bill No |
-  // Date | Terms | Total Due | Due Days | Amount — fixed 30/35px + star columns,
-  // everything fits the screen width (no horizontal scroll).
+  // Common Company ON aggregates bills across companies (company=0). The short
+  // code already mapped from vv_cmp is only useful in that combined grid.
+  const showCompanyRef = filter?.commonCompany === true;
+
+  // Same columns as the OG .NET grid: checkbox, optional company code, book,
+  // bill number, date, term, total due, due days, amount, optional interest.
+  // Widths are absolute so a long bill number cannot steal space from Amount.
+  const billLayout = useMemo(
+    () => layoutSalesOsBillColumns({
+      windowWidth,
+      showCompanyRef,
+      showInterest,
+      interestOnBasic: interestCalc.interestBase === 'basic',
+    }),
+    [windowWidth, showCompanyRef, showInterest, interestCalc.interestBase],
+  );
+  const colWidth = (key: string) => billLayout.widths[key];
+
   const billColumns: GridColumn<SalesOsInvoice>[] = [
     {
-      key: 'sel', label: '', width: 24,
+      key: 'sel', label: '', width: colWidth('sel'),
       render: (inv) => (
         <Icon
           name={selectedIds.includes(inv.id) ? 'checkbox-marked' : 'checkbox-blank-outline'}
@@ -96,27 +173,92 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
         />
       ),
     },
-    { key: 'bookCode', label: 'Book', width: 32, align: 'left' },
-    { key: 'number', label: 'Bill No', flex: showInterest ? 0.65 : 0.8, align: 'left', render: (inv) => <GridText align="left" bold fontSize={showInterest ? 10 : undefined}>{inv.number}</GridText> },
-    { key: 'date', label: 'Date', flex: 1.1, render: (inv) => <GridText>{toDDMMYY(inv.date)}</GridText> },
-    { key: 'termDays', label: 'Terms', width: 35, align: 'right', render: (inv) => <GridText align="right">{String(inv.termDays ?? 0)}</GridText> },
-    { key: 'totalDueDays', label: 'Total Due', width: 32, render: (inv) => <GridText>{String(inv.totalDueDays ?? 0)}</GridText> },
+    ...(showCompanyRef
+      ? [{
+          key: 'companyRef',
+          label: 'Cmp',
+          width: colWidth('companyRef'),
+          numberOfLines: 1,
+          headerNumberOfLines: 1,
+          render: (inv) => <PartyGridText numberOfLines={1}>{inv.companyRef || ''}</PartyGridText>,
+        } satisfies GridColumn<SalesOsInvoice>]
+      : []),
+    { key: 'bookCode', label: 'Book', width: colWidth('bookCode'), align: 'left' },
     {
-      key: 'dueDays', label: 'Due Days', width: 32,
+      key: 'number',
+      label: 'Bill No',
+      width: colWidth('number'),
+      align: 'left',
+      render: (inv) => <PartyGridText align="left" bold numberOfLines={2}>{inv.number}</PartyGridText>,
+    },
+    {
+      key: 'date',
+      label: 'Date',
+      width: colWidth('date'),
       render: (inv) => (
-        <GridText bold color={-inv.daysLeft > 0 ? Colors.danger : Colors.success}>
-          {String(-inv.daysLeft)}
-        </GridText>
+        <PartyGridText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+          {toDDMMYY(inv.date)}
+        </PartyGridText>
       ),
     },
-    { key: 'outstanding', label: 'Amount', flex: 1.4, render: (inv) => <GridText>{`₹${inv.outstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}</GridText> },
+    {
+      key: 'termDays',
+      label: salesOsTermHeader(colWidth('termDays')),
+      width: colWidth('termDays'),
+      headerNumberOfLines: 1,
+      align: 'right',
+      render: (inv) => <PartyGridText align="right" numberOfLines={1}>{String(inv.termDays ?? 0)}</PartyGridText>,
+    },
+    {
+      key: 'totalDueDays',
+      label: 'Total Due',
+      width: colWidth('totalDueDays'),
+      render: (inv) => <PartyGridText numberOfLines={1}>{String(inv.totalDueDays ?? 0)}</PartyGridText>,
+    },
+    {
+      key: 'dueDays',
+      label: 'Due Days',
+      width: colWidth('dueDays'),
+      render: (inv) => (
+        <PartyGridText bold numberOfLines={1} color={-inv.daysLeft > 0 ? Colors.danger : Colors.success}>
+          {String(-inv.daysLeft)}
+        </PartyGridText>
+      ),
+    },
+    {
+      key: 'outstanding',
+      label: 'Amount',
+      width: colWidth('outstanding'),
+      render: (inv) => (
+        <PartyGridText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {`₹${inv.outstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+        </PartyGridText>
+      ),
+    },
     ...(showInterest ? [{
       key: 'interest',
       label: interestCalc.interestBase === 'basic' ? 'Int (Basic)' : 'Interest',
-      flex: 1.3,
-      render: (inv: any) => <GridText>{`₹ ${interestCalc.calculateBillInterest(inv).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}</GridText>
+      width: colWidth('interest'),
+      render: (inv: SalesOsInvoice) => (
+        <PartyGridText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {`₹ ${interestCalc.calculateBillInterest(inv).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}
+        </PartyGridText>
+      ),
     }] : [])
   ];
+
+  useEffect(() => {
+    scrollX.current = 0;
+    headerScrollRef.current?.scrollTo({ x: 0, animated: false });
+    bodyScrollRef.current?.scrollTo({ x: 0, animated: false });
+  }, [billLayout.tableWidth, billLayout.scrolls]);
+
+  const onBodyGridScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = event.nativeEvent.contentOffset.x;
+    if (Math.abs(x - scrollX.current) < 0.5) return;
+    scrollX.current = x;
+    headerScrollRef.current?.scrollTo({ x, animated: false });
+  };
 
   const handleShare = async () => {
     if (!party) return;
@@ -140,6 +282,7 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
       periodTo: filter?.toDate,
       date: new Date().toISOString(),
       invoices: billsToPrint,
+      showCompanyCode: showCompanyRef,
       showInterest,
       interestBase: interestCalc.interestBase,
       totals: {
@@ -194,15 +337,6 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
           <View style={{ flex: 1 }}>
             <Text style={styles.ogTotal}>Total O/s: {formatCurrency(party.totalOs)}</Text>
             <Text style={styles.ogSub}>{party.invoiceCount} bills</Text>
-            {selectedInvoices.length > 0 ? (
-              <>
-                <Text style={styles.ogSub}>{selectedInvoices.length} bills selected</Text>
-                <View style={styles.selectedSummaryRow}>
-                  <Text style={styles.selectedLabel}>Selected Bill Total</Text>
-                  <Text style={styles.selectedValue}>{formatCurrency(selectedTotal)}</Text>
-                </View>
-              </>
-            ) : null}
           </View>
           <View style={styles.compactToggles}>
             <View style={styles.toggleItem}>
@@ -229,6 +363,24 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
             </View>
           </View>
         </View>
+        {selectedInvoices.length > 0 ? (
+          <View style={styles.selectedSummaryBlock}>
+            <Text style={styles.ogSub}>{selectedInvoices.length} bills selected</Text>
+            <View style={styles.selectedSummaryRow}>
+              <Text style={styles.selectedLabel}>Selected Bill Total</Text>
+              <View style={styles.selectedValueWrap}>
+                <Text
+                  style={styles.selectedValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.65}
+                >
+                  {formatCurrency(selectedTotal)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.invoicesToolbar}>
@@ -256,23 +408,42 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
             />
           </View>
         )}
-        <GridTableHeader columns={billColumns} />
+        <GridHScroll
+          enabled={billLayout.scrolls}
+          width={billLayout.tableWidth}
+          viewportWidth={windowWidth}
+          scrollRef={headerScrollRef}
+          pointerEvents="none"
+        >
+          <GridTableHeader columns={billColumns} {...partyGridMetrics} />
+        </GridHScroll>
       </View>
 
       <ScrollView
         style={styles.billScroll}
         contentContainerStyle={styles.billScrollContent}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
       >
-        <GridTable
-          columns={billColumns}
-          data={visibleInvoices}
-          keyExtractor={(inv, idx) => `${inv.id}-${idx}`}
-          onRowPress={(inv) => toggleBill(inv.id)}
-          rowStyle={(inv) => (selectedIds.includes(inv.id) ? styles.rowSelected : undefined)}
-          emptyText="No pending invoices"
-          hideHeader
-        />
+        <GridHScroll
+          enabled={billLayout.scrolls}
+          width={billLayout.tableWidth}
+          viewportWidth={windowWidth}
+          scrollRef={bodyScrollRef}
+          showIndicator
+          onScroll={onBodyGridScroll}
+        >
+          <GridTable
+            columns={billColumns}
+            data={visibleInvoices}
+            keyExtractor={(inv, idx) => `${inv.id}-${idx}`}
+            onRowPress={(inv) => toggleBill(inv.id)}
+            rowStyle={(inv) => (selectedIds.includes(inv.id) ? styles.rowSelected : undefined)}
+            emptyText="No pending invoices"
+            hideHeader
+            {...partyGridMetrics}
+          />
+        </GridHScroll>
 
         <View style={[styles.actions, styles.sectionPad]}>
           <TouchableOpacity
@@ -313,7 +484,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  summaryBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 4 },
+  summaryBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   ogParty: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
   ogAddress: { fontSize: Typography.fontSizes.sm, color: Colors.textSecondary, marginBottom: 2 },
   waIcon: { padding: 4 },
@@ -338,15 +509,29 @@ const styles = StyleSheet.create({
   },
   selectAll: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   selectAllText: { fontSize: Typography.fontSizes.xs, color: Colors.gradientStart, fontWeight: Typography.fontWeights.semiBold },
+  selectedSummaryBlock: { width: '100%', marginTop: 6 },
   selectedSummaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    paddingRight: Spacing.sm,
+    width: '100%',
+    marginTop: 2,
+    gap: 8,
   },
-  selectedLabel: { fontSize: Typography.fontSizes.sm, color: Colors.textSecondary, fontWeight: Typography.fontWeights.medium },
-  selectedValue: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.gradientStart },
+  selectedLabel: {
+    flex: 1.15,
+    minWidth: 0,
+    fontSize: Typography.fontSizes.sm,
+    color: Colors.textSecondary,
+    fontWeight: Typography.fontWeights.medium,
+  },
+  selectedValueWrap: { flex: 1, minWidth: 0, alignItems: 'flex-end' },
+  selectedValue: {
+    width: '100%',
+    textAlign: 'right',
+    fontSize: Typography.fontSizes.md,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.gradientStart,
+  },
   billScroll: { flex: 1, backgroundColor: Colors.surface },
   billScrollContent: { paddingBottom: Spacing.xl },
   actions: {

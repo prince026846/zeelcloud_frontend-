@@ -46,6 +46,7 @@ export const MoreScreen: React.FC = () => {
   const items: MoreItem[] = [
     { icon: 'swap-horizontal', label: 'Switch Company', onPress: () => navigation.navigate('AccountTabs') },
     { icon: 'clipboard-text-outline', label: 'Quotation Management', onPress: () => navigation.navigate('QuotationStack') },
+    { icon: 'file-document-edit-outline', label: 'Pro Forma Invoice', onPress: () => navigation.navigate('ProformaInvoiceStack') },
     { icon: 'account-group-outline', label: 'Sub Users', onPress: () => navigation.navigate('AccountTabs') },
     { icon: 'refresh', label: isRefreshing ? 'Syncing...' : 'Sync Profile & Permissions', onPress: handleRefresh },
     { icon: 'information-outline', label: 'About ZeelCloud', onPress: () => navigation.navigate('About') },

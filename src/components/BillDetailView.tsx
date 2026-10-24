@@ -9,6 +9,11 @@ import { GridTable, GridColumn, GridText } from './GridTable';
 import { Colors, Typography, Spacing, BorderRadius } from '../theme';
 import { toDDMMYYYY } from '../utils/formatDate';
 import { generateInvoicePDF } from '../utils/invoicePdfGenerator';
+import {
+  cartonSalesQtyColumns,
+  isCartonSalesLayout,
+  standardSalesQtyColumns,
+} from '../utils/salesBillColumns';
 import type { BillDetail, BillDetailItem } from '../types';
 
 export type BillModule = 'sales' | 'purchase' | 'gp';
@@ -25,7 +30,8 @@ interface BillDetailViewProps {
 const money = (n: number) =>
   n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
-const num3 = money;
+const num3 = (n: number | undefined | null) =>
+  (Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
 // Items grid columns per module — exactly the OG *RegisterDetails column sets.
 const itemColumnsFor = (module: BillModule, detail?: BillDetail): GridColumn<BillDetailItem>[] => {
@@ -39,29 +45,20 @@ const itemColumnsFor = (module: BillModule, detail?: BillDetail): GridColumn<Bil
   };
   if (module === 'sales') {
     const cols: GridColumn<BillDetailItem>[] = [name];
-    
-    // Check if the API indicates this is "Cartons" (Combination 2)
-    const isCombo2 = [detail?.field1, detail?.field2, detail?.field3]
-      .some(f => f?.toLowerCase().includes('crtn') || f?.toLowerCase().includes('carton'));
-
-    if (isCombo2) {
-      // Combination 2: Crtn, Pallu, Weight, Cops, Amount
-      cols.push(
-        { key: 'taka', label: 'Crtn', flex: 0.7, render: (i) => <GridText>{String(i.taka ?? 0)}</GridText> },
-        { key: 'pallu', label: 'Pallu', flex: 0.7, render: (i) => <GridText>{String(i.pallu ?? 0)}</GridText> },
-        { key: 'weight', label: 'Weight', flex: 1, render: (i) => <GridText>{num3(i.weight ?? 0)}</GridText> },
-        { key: 'meter', label: 'Cops', flex: 1.1, render: (i) => <GridText>{num3(i.meter ?? 0)}</GridText> }
-      );
-    } else {
-      // Combination 1: Taka, Pallu, Meter, Weight, Amount
-      cols.push(
-        { key: 'taka', label: 'Taka', flex: 0.7, render: (i) => <GridText>{String(i.taka ?? 0)}</GridText> },
-        { key: 'pallu', label: 'Pallu', flex: 0.7, render: (i) => <GridText>{String(i.pallu ?? 0)}</GridText> },
-        { key: 'meter', label: 'Meter', flex: 1.1, render: (i) => <GridText>{num3(i.meter ?? 0)}</GridText> },
-        { key: 'weight', label: 'Weight', flex: 1, render: (i) => <GridText>{num3(i.weight ?? 0)}</GridText> }
-      );
+    // Carton / combination 2 keeps Crtn | Pallu | Weight | Cops.
+    // Standard sales uses API labels: field1/Qty1 | Pallu | field2/Qty2 | field3/Qty3.
+    const measures = isCartonSalesLayout(detail) ? cartonSalesQtyColumns() : standardSalesQtyColumns(detail);
+    for (const col of measures) {
+      const flex = col.key === 'taka' || col.key === 'pallu' ? 0.7 : col.key === 'meter' ? 1.1 : 1;
+      cols.push({
+        key: col.key,
+        label: col.label,
+        flex,
+        render: (i) => (
+          <GridText>{col.fractionDigits === 3 ? num3(col.value(i)) : String(col.value(i))}</GridText>
+        ),
+      });
     }
-    
     cols.push(amount);
     return cols;
   }

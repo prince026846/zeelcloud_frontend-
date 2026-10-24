@@ -21,8 +21,28 @@ const PREVIEW_FIT_SCRIPT = `
 (function() {
   function applyFit() {
     try {
-      if (false) {
-        // Disabled font boost to match downloaded PDF exact styling
+      if (!document.getElementById('preview-readability-boost')) {
+        var boost = document.createElement('style');
+        boost.id = 'preview-readability-boost';
+        boost.textContent = [
+          'body { font-size: 14px !important; }',
+          '.company-name { font-size: 22px !important; }',
+          '.company-address, .gst-row, .year { font-size: 13px !important; }',
+          '.title, .report-title { font-size: 16px !important; }',
+          '.info-label, .party-details, .meta-row { font-size: 12.5px !important; }',
+          '.info-value, .party-name, .invoice-box-cell { font-size: 14px !important; }',
+          '.info-address, .info-meta-sub { font-size: 12px !important; line-height: 1.4 !important; }',
+          'th { font-size: 12px !important; padding: 6px 3px !important; }',
+          'td { font-size: 12.5px !important; padding: 5px 3px !important; }',
+          'td.shrink-7 { font-size: 11px !important; }',
+          'td.shrink-9 { font-size: 10px !important; }',
+          '.tot-lbl, .tot-val { font-size: 13px !important; }',
+          '.tot-net .tot-lbl, .tot-net .tot-val, .tot-grand .tot-lbl, .tot-grand .tot-val { font-size: 15px !important; }',
+          '.bank-title, .sign-title, .auth-sign { font-size: 13px !important; }',
+          '.bank-row, .sign-note { font-size: 12px !important; }',
+          '.summary-table td, .summary-row, .summary-line, .green-header, .green-footer { font-size: 13.5px !important; }'
+        ].join('\\n');
+        document.head.appendChild(boost);
       }
 
       var page = document.getElementById('pdf-page') || document.body;
@@ -32,8 +52,8 @@ const PREVIEW_FIT_SCRIPT = `
       page.style.transformOrigin = 'top left';
       page.style.margin = '0';
       page.style.boxSizing = 'border-box';
-      page.style.width = '794px';
-      page.style.maxWidth = '794px';
+      page.style.width = '640px';
+      page.style.maxWidth = '640px';
 
       var pageWidth = Math.max(page.scrollWidth, page.offsetWidth, 1);
       var viewWidth = window.innerWidth || document.documentElement.clientWidth || 1;

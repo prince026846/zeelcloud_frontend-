@@ -18,6 +18,7 @@ import { LedgerDetailsScreen } from '../screens/ledger/LedgerDetailsScreen';
 import { AboutScreen } from '../screens/AboutScreen';
 import { ContactScreen } from '../screens/ContactScreen';
 import { QuotationStack } from './stacks/QuotationStack';
+import { ProformaInvoiceStack } from './stacks/ProformaInvoiceStack';
 import type { AppStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -44,5 +45,6 @@ export const AppNavigator: React.FC = () => (
     <Stack.Screen name="About" component={AboutScreen} />
     <Stack.Screen name="Contact" component={ContactScreen} />
     <Stack.Screen name="QuotationStack" component={QuotationStack} />
+    <Stack.Screen name="ProformaInvoiceStack" component={ProformaInvoiceStack} />
   </Stack.Navigator>
 );

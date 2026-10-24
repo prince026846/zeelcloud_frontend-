@@ -73,6 +73,10 @@ import type {
   Quotation,
   CreateQuotationPayload,
   CreateQuotationItemPayload,
+  ProformaInvoiceItem,
+  ProformaInvoice,
+  CreateProformaInvoicePayload,
+  CreateProformaInvoiceItemPayload,
 } from '../types';
 
 // ─── Base Client (swap with axios instance when ready) ────────────────────────
@@ -946,19 +950,22 @@ export const salesOrdersApi = {
 
 // ─── Quotation Item Master ───────────────────────────────────────────────────
 
-const mapQuotationItemMaster = (row: Record<string, unknown>): QuotationItemMaster => ({
-  id: String(row.id ?? ''),
-  companyId: typeof row.company_id === 'number' ? row.company_id : Number(row.company_id) || 0,
-  companyName: typeof row.company_name === 'string' ? row.company_name : '',
-  itemName: typeof row.item_name === 'string' ? row.item_name : '',
-  narration: typeof row.narration === 'string' ? row.narration : '',
-  mrp: typeof row.mrp === 'number' ? row.mrp : parseFloat(String(row.mrp ?? 0)) || 0,
-  gstPercentage: typeof row.gst_percentage === 'number' ? row.gst_percentage : parseFloat(String(row.gst_percentage ?? 0)) || 0,
-  image: typeof row.image === 'string' ? row.image : undefined,
-  imageUrl: typeof row.image_url === 'string' ? row.image_url : typeof row.image === 'string' ? row.image : undefined,
-  isActive: row.is_active !== false,
-  created: typeof row.created === 'string' ? row.created : '',
-});
+const mapQuotationItemMaster = (row: Record<string, unknown>): QuotationItemMaster => {
+  const compId = row.company_id ?? row.vn_company_id;
+  return {
+    id: String(row.id ?? ''),
+    companyId: typeof compId === 'number' ? compId : Number(compId) || 0,
+    companyName: typeof row.company_name === 'string' ? row.company_name : '',
+    itemName: typeof row.item_name === 'string' ? row.item_name : '',
+    narration: typeof row.narration === 'string' ? row.narration : '',
+    mrp: typeof row.mrp === 'number' ? row.mrp : parseFloat(String(row.mrp ?? 0)) || 0,
+    gstPercentage: typeof row.gst_percentage === 'number' ? row.gst_percentage : parseFloat(String(row.gst_percentage ?? 0)) || 0,
+    image: typeof row.image === 'string' ? row.image : undefined,
+    imageUrl: typeof row.image_url === 'string' ? row.image_url : typeof row.image === 'string' ? row.image : undefined,
+    isActive: row.is_active !== false,
+    created: typeof row.created === 'string' ? row.created : '',
+  };
+};
 
 export const quotationItemsApi = {
   getAll: async (companyId?: string | number, search?: string): Promise<QuotationItemMaster[]> => {
@@ -1000,30 +1007,35 @@ export const quotationItemsApi = {
 
 // ─── Quotations ───────────────────────────────────────────────────────────────
 
-const mapQuotationItem = (row: Record<string, unknown>): QuotationItem => ({
-  id: String(row.id ?? ''),
-  itemMasterId: row.item_master_id ? String(row.item_master_id) : null,
-  itemName: typeof row.item_name === 'string' ? row.item_name : '',
-  narration: typeof row.narration === 'string' ? row.narration : '',
-  imageUrl: typeof row.image_url === 'string' ? row.image_url : undefined,
-  batchNo: typeof row.batch_no === 'string' ? row.batch_no : '',
-  mrp: typeof row.mrp === 'number' ? row.mrp : parseFloat(String(row.mrp ?? 0)) || 0,
-  rate: typeof row.rate === 'number' ? row.rate : parseFloat(String(row.rate ?? 0)) || 0,
-  gstPercentage: typeof row.gst_percentage === 'number' ? row.gst_percentage : parseFloat(String(row.gst_percentage ?? 0)) || 0,
-  gstAmount: typeof row.gst_amount === 'number' ? row.gst_amount : parseFloat(String(row.gst_amount ?? 0)) || 0,
-  quantity: typeof row.quantity === 'number' ? row.quantity : parseFloat(String(row.quantity ?? 0)) || 0,
-  amount: typeof row.amount === 'number' ? row.amount : parseFloat(String(row.amount ?? 0)) || 0,
-  lineNo: typeof row.line_no === 'number' ? row.line_no : 0,
-});
+const mapQuotationItem = (row: Record<string, unknown>): QuotationItem => {
+  const masterId = row.item_master_id ?? row.item_master;
+  return {
+    id: String(row.id ?? ''),
+    itemMasterId: masterId ? String(masterId) : null,
+    itemName: typeof row.item_name === 'string' ? row.item_name : '',
+    narration: typeof row.narration === 'string' ? row.narration : '',
+    imageUrl: typeof row.image_url === 'string' ? row.image_url : undefined,
+    batchNo: typeof row.batch_no === 'string' ? row.batch_no : '',
+    mrp: typeof row.mrp === 'number' ? row.mrp : parseFloat(String(row.mrp ?? 0)) || 0,
+    rate: typeof row.rate === 'number' ? row.rate : parseFloat(String(row.rate ?? 0)) || 0,
+    gstPercentage: typeof row.gst_percentage === 'number' ? row.gst_percentage : parseFloat(String(row.gst_percentage ?? 0)) || 0,
+    gstAmount: typeof row.gst_amount === 'number' ? row.gst_amount : parseFloat(String(row.gst_amount ?? 0)) || 0,
+    quantity: typeof row.quantity === 'number' ? row.quantity : parseFloat(String(row.quantity ?? 0)) || 0,
+    amount: typeof row.amount === 'number' ? row.amount : parseFloat(String(row.amount ?? 0)) || 0,
+    lineNo: typeof row.line_no === 'number' ? row.line_no : 0,
+  };
+};
 
 const mapQuotation = (row: Record<string, unknown>): Quotation => {
   const rawItems = Array.isArray(row.items) ? row.items : [];
+  const compId = row.company_id ?? row.vn_company_id;
+  const pId = row.party_id ?? row.vn_party_id;
   return {
     id: String(row.id ?? ''),
-    companyId: typeof row.company_id === 'number' ? row.company_id : Number(row.company_id) || 0,
+    companyId: typeof compId === 'number' ? compId : Number(compId) || 0,
     quotationNo: typeof row.quotation_no === 'string' ? row.quotation_no : '',
     date: typeof row.date === 'string' ? row.date : '',
-    partyId: row.party_id !== undefined && row.party_id !== null ? Number(row.party_id) : null,
+    partyId: pId !== undefined && pId !== null ? Number(pId) : null,
     partyName: typeof row.party_name === 'string' ? row.party_name : '',
     partyAddress: typeof row.party_address === 'string' ? row.party_address : '',
     contactNo: typeof row.contact_no === 'string' ? row.contact_no : '',
@@ -1093,5 +1105,107 @@ export const quotationsApi = {
     });
   },
 };
+
+// ─── Pro Forma Invoices ────────────────────────────────────────────────────────
+
+const mapProformaInvoiceItem = (row: Record<string, unknown>): ProformaInvoiceItem => {
+  const masterId = row.item_master_id ?? row.item_master;
+  return {
+    id: String(row.id ?? ''),
+    itemMasterId: masterId ? String(masterId) : null,
+    itemName: typeof row.item_name === 'string' ? row.item_name : '',
+    narration: typeof row.narration === 'string' ? row.narration : '',
+    imageUrl: typeof row.image_url === 'string' ? row.image_url : undefined,
+    batchNo: typeof row.batch_no === 'string' ? row.batch_no : '',
+    mrp: typeof row.mrp === 'number' ? row.mrp : parseFloat(String(row.mrp ?? 0)) || 0,
+    rate: typeof row.rate === 'number' ? row.rate : parseFloat(String(row.rate ?? 0)) || 0,
+    gstPercentage: typeof row.gst_percentage === 'number' ? row.gst_percentage : parseFloat(String(row.gst_percentage ?? 0)) || 0,
+    gstAmount: typeof row.gst_amount === 'number' ? row.gst_amount : parseFloat(String(row.gst_amount ?? 0)) || 0,
+    quantity: typeof row.quantity === 'number' ? row.quantity : parseFloat(String(row.quantity ?? 0)) || 0,
+    amount: typeof row.amount === 'number' ? row.amount : parseFloat(String(row.amount ?? 0)) || 0,
+    lineNo: typeof row.line_no === 'number' ? row.line_no : 0,
+  };
+};
+
+const mapProformaInvoice = (row: Record<string, unknown>): ProformaInvoice => {
+  const rawItems = Array.isArray(row.items) ? row.items : [];
+  const compId = row.company_id ?? row.vn_company_id;
+  const pId = row.party_id ?? row.vn_party_id;
+  return {
+    id: String(row.id ?? ''),
+    companyId: typeof compId === 'number' ? compId : Number(compId) || 0,
+    invoiceNo: typeof row.invoice_no === 'string' ? row.invoice_no : '',
+    date: typeof row.date === 'string' ? row.date : '',
+    partyId: pId !== undefined && pId !== null ? Number(pId) : null,
+    partyName: typeof row.party_name === 'string' ? row.party_name : '',
+    partyAddress: typeof row.party_address === 'string' ? row.party_address : '',
+    contactNo: typeof row.contact_no === 'string' ? row.contact_no : '',
+    email: typeof row.email === 'string' ? row.email : '',
+    ccEmail: typeof row.cc_email === 'string' ? row.cc_email : '',
+    remark: typeof row.remark === 'string' ? row.remark : '',
+    subtotal: typeof row.subtotal === 'number' ? row.subtotal : parseFloat(String(row.subtotal ?? 0)) || 0,
+    discountType: row.discount_type === 'percentage' ? 'percentage' : 'amount',
+    discountValue: typeof row.discount_value === 'number' ? row.discount_value : parseFloat(String(row.discount_value ?? 0)) || 0,
+    discountAmount: typeof row.discount_amount === 'number' ? row.discount_amount : parseFloat(String(row.discount_amount ?? 0)) || 0,
+    totalGstAmount: typeof row.total_gst_amount === 'number' ? row.total_gst_amount : parseFloat(String(row.total_gst_amount ?? 0)) || 0,
+    totalAmount: typeof row.total_amount === 'number' ? row.total_amount : parseFloat(String(row.total_amount ?? 0)) || 0,
+    items: rawItems.map((item) => mapProformaInvoiceItem(item as Record<string, unknown>)),
+    created: typeof row.created === 'string' ? row.created : '',
+    updated: typeof row.updated === 'string' ? row.updated : '',
+  };
+};
+
+export const proformaInvoicesApi = {
+  getAll: async (params?: { company?: string | number; company_id?: string | number; search?: string; from_date?: string; to_date?: string }): Promise<ProformaInvoice[]> => {
+    const searchParams = new URLSearchParams();
+    const company = params?.company ?? params?.company_id;
+    if (company) searchParams.set('company', String(company));
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.from_date) searchParams.set('from_date', params.from_date);
+    if (params?.to_date) searchParams.set('to_date', params.to_date);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const payload = await apiFetch<unknown>(`/proforma-invoices/${query}`);
+    return extractDataArray(payload).map((row) => mapProformaInvoice(row as Record<string, unknown>));
+  },
+  getById: async (id: string): Promise<ProformaInvoice | undefined> => {
+    const payload = await apiFetch<Record<string, unknown>>(`/proforma-invoices/${id}/`);
+    if (!payload || typeof payload !== 'object') return undefined;
+    const data = payload.data && typeof payload.data === 'object' ? payload.data : payload;
+    return mapProformaInvoice(data as Record<string, unknown>);
+  },
+  getNextNumber: async (companyId: string | number): Promise<string> => {
+    const payload = await apiFetch<{ next_number?: string }>(`/proforma-invoices/next-number/?company=${companyId}`);
+    return payload?.next_number || '';
+  },
+  create: async (data: CreateProformaInvoicePayload): Promise<ProformaInvoice> => {
+    const payload = await apiFetch<Record<string, unknown>>('/proforma-invoices/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    const responseData = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
+    return mapProformaInvoice(responseData as Record<string, unknown>);
+  },
+  update: async (id: string, data: CreateProformaInvoicePayload): Promise<ProformaInvoice> => {
+    const payload = await apiFetch<Record<string, unknown>>(`/proforma-invoices/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    const responseData = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
+    return mapProformaInvoice(responseData as Record<string, unknown>);
+  },
+  delete: async (id: string): Promise<void> => {
+    await apiFetch(`/proforma-invoices/${id}/`, { method: 'DELETE' });
+  },
+  sendEmail: async (
+    id: string,
+    emailData?: { email?: string; cc_email?: string; subject?: string; message?: string }
+  ): Promise<{ status?: string; detail?: string }> => {
+    return await apiFetch<{ status?: string; detail?: string }>(`/proforma-invoices/${id}/send-email/`, {
+      method: 'POST',
+      body: JSON.stringify(emailData || {}),
+    });
+  },
+};
+
 
 

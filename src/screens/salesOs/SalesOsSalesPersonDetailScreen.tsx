@@ -71,7 +71,7 @@ export const SalesOsSalesPersonDetailScreen: React.FC<Props> = ({ navigation, ro
     { key: 'bookCode', label: 'Book', width: 32, align: 'left' },
     { key: 'number', label: 'Bill No', flex: showInterest ? 0.65 : 0.8, align: 'left', render: (inv) => <GridText align="left" bold fontSize={showInterest ? 10 : undefined}>{inv.number}</GridText> },
     { key: 'date', label: 'Date', flex: 1.1, render: (inv) => <GridText>{toDDMMYY(inv.date)}</GridText> },
-    { key: 'termDays', label: 'Terms', width: 35, align: 'right', render: (inv) => <GridText align="right">{String(inv.termDays ?? 0)}</GridText> },
+    { key: 'termDays', label: 'Terms', width: 48, headerNumberOfLines: 1, align: 'right', render: (inv) => <GridText align="right" numberOfLines={1}>{String(inv.termDays ?? 0)}</GridText> },
     {
       key: 'dueDays', label: 'Due Days', width: 40,
       render: (inv) => (

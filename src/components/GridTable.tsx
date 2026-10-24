@@ -14,9 +14,21 @@ export interface GridColumn<T> {
   render?: (item: T) => React.ReactNode;
   /** Max lines for default (non-render) cell text. Default 2. */
   numberOfLines?: number;
+  /** Max lines for the header label. Default 2 so two-word headers can wrap. */
+  headerNumberOfLines?: number;
 }
 
-interface GridTableProps<T> {
+/** Opt-in metrics. Omitted props keep the shared grid defaults. */
+interface GridMetrics {
+  /** Horizontal padding inside each cell. Default 3. */
+  cellPaddingHorizontal?: number;
+  /** Caps system font scaling for this table only. Omit to keep full scaling. */
+  maxFontSizeMultiplier?: number;
+  /** Wrap header and default cell text inside the column instead of letting it widen the row. */
+  constrainText?: boolean;
+}
+
+interface GridTableProps<T> extends GridMetrics {
   columns: GridColumn<T>[];
   data: T[];
   keyExtractor: (item: T, index: number) => string;
@@ -41,18 +53,29 @@ export function GridTable<T>({
   emptyText = 'No records',
   hideHeader = false,
   alignRowsTop = false,
+  cellPaddingHorizontal,
+  maxFontSizeMultiplier,
+  constrainText = false,
 }: GridTableProps<T>) {
   const cellStyle = (col: GridColumn<T>): ViewStyle => ({
     ...(col.width != null ? { width: col.width } : { flex: col.flex ?? 1, minWidth: 0 }),
     alignItems: col.align === 'right' ? 'flex-end' : col.align === 'left' ? 'flex-start' : 'center',
     justifyContent: alignRowsTop ? 'flex-start' : 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: cellPaddingHorizontal ?? 3,
   });
+  const fontCap = maxFontSizeMultiplier != null ? { maxFontSizeMultiplier } : null;
 
   return (
     <View style={styles.table}>
       {/* Header strip (OG: Yellow200Accent bar with 10px labels) */}
-      {!hideHeader && <GridTableHeader columns={columns} />}
+      {!hideHeader && (
+        <GridTableHeader
+          columns={columns}
+          cellPaddingHorizontal={cellPaddingHorizontal}
+          maxFontSizeMultiplier={maxFontSizeMultiplier}
+          constrainText={constrainText}
+        />
+      )}
 
       {data.length === 0 ? (
         <Text style={styles.empty}>{emptyText}</Text>
@@ -76,8 +99,9 @@ export function GridTable<T>({
                     col.render(item)
                   ) : (
                     <Text
-                      style={styles.td}
+                      style={[styles.td, constrainText ? styles.constrained : null]}
                       numberOfLines={col.numberOfLines ?? 2}
+                      {...fontCap}
                     >
                       {String((item as Record<string, unknown>)[col.key] ?? '')}
                     </Text>
@@ -92,19 +116,29 @@ export function GridTable<T>({
   );
 }
 
-export function GridTableHeader<T>({ columns }: { columns: GridColumn<T>[] }) {
+export function GridTableHeader<T>({
+  columns,
+  cellPaddingHorizontal,
+  maxFontSizeMultiplier,
+  constrainText = false,
+}: { columns: GridColumn<T>[] } & GridMetrics) {
   const cellStyle = (col: GridColumn<T>): ViewStyle => ({
     ...(col.width != null ? { width: col.width } : { flex: col.flex ?? 1, minWidth: 0 }),
     alignItems: col.align === 'right' ? 'flex-end' : col.align === 'left' ? 'flex-start' : 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: cellPaddingHorizontal ?? 3,
   });
+  const fontCap = maxFontSizeMultiplier != null ? { maxFontSizeMultiplier } : null;
 
   return (
     <View style={[styles.row, styles.headerRow]}>
       {columns.map((col) => (
         <View key={col.key} style={cellStyle(col)}>
-          <Text style={styles.th} numberOfLines={2}>
+          <Text
+            style={[styles.th, constrainText ? styles.constrained : null]}
+            numberOfLines={col.headerNumberOfLines ?? 2}
+            {...fontCap}
+          >
             {col.label}
           </Text>
         </View>
@@ -124,6 +158,10 @@ export const GridText: React.FC<{
   numberOfLines?: number;
   adjustsFontSizeToFit?: boolean;
   minimumFontScale?: number;
+  /** Keep this text inside its cell so a long value cannot widen the column. */
+  fitWidth?: boolean;
+  /** Caps system font scaling for this text only. Omit to keep full scaling. */
+  maxFontSizeMultiplier?: number;
 }> = ({
   children,
   bold,
@@ -133,11 +171,14 @@ export const GridText: React.FC<{
   numberOfLines = 2,
   adjustsFontSizeToFit,
   minimumFontScale,
+  fitWidth,
+  maxFontSizeMultiplier,
 }) => (
   <Text
     numberOfLines={numberOfLines}
     adjustsFontSizeToFit={adjustsFontSizeToFit}
     minimumFontScale={minimumFontScale}
+    {...(maxFontSizeMultiplier != null ? { maxFontSizeMultiplier } : {})}
     style={[
       styles.td,
       bold && styles.tdBold,
@@ -145,6 +186,7 @@ export const GridText: React.FC<{
       align ? { textAlign: align } : null,
       fontSize ? { fontSize } : null,
       adjustsFontSizeToFit ? { width: '100%' } : null,
+      fitWidth ? styles.fitWidth : null,
     ]}
   >
     {children}
@@ -192,6 +234,17 @@ const styles = StyleSheet.create({
   tdBold: {
     fontWeight: Typography.fontWeights.bold,
     color: Colors.primary,
+  },
+  constrained: {
+    width: '100%',
+    alignSelf: 'stretch',
+    flexShrink: 1,
+    includeFontPadding: false,
+  },
+  fitWidth: {
+    width: '100%',
+    alignSelf: 'stretch',
+    flexShrink: 1,
   },
   empty: {
     fontSize: Typography.fontSizes.sm,

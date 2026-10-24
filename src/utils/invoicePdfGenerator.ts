@@ -7,13 +7,25 @@ import type { BillModule } from '../components/BillDetailView';
 import { usePdfStore } from '../store/usePdfStore';
 import { useCompanyStore } from '../store/companyStore';
 import { formatPdfFileName } from './pdfFileName';
+import { standardSalesQtyColumns } from './salesBillColumns';
 import { Colors } from '../theme';
+
+const escapeHtml = (str: string | number | undefined | null): string => {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
 
 export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, reportType: string = 'Tax Invoice', company?: Company | null): string => {
   const money = (n: number | undefined) => (n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
   const num3 = (n: number | undefined) => (n || 0).toLocaleString('en-IN', { maximumFractionDigits: 3, minimumFractionDigits: 3 });
   
   const isSales = module === 'sales';
+  const salesQtyColumns = standardSalesQtyColumns(detail);
   
   // Calculate grid totals
   let totalTaka = 0, totalPallu = 0, totalMeter = 0, totalWeight = 0;
@@ -43,6 +55,30 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
     return `<td class="${align} ${extraClass} ${shrinkClass}" style="white-space: nowrap;">${str}</td>`;
   };
 
+  // Short invoices keep the full-page frame. Long ones must grow in normal
+  // flow: a fixed frame (max-height + a shrinking flex child) paints item
+  // rows on top of the totals and footer instead of starting another page.
+  const singlePage = (() => {
+    const shown = (n: number | undefined) => n != null && n !== 0;
+    const taxLines = [
+      detail.discount, detail.addOther1, detail.freight, detail.igst, detail.sgst,
+      detail.cgst, detail.bFreight, detail.addOther2, detail.addLess, detail.tcs, detail.roundOf,
+    ].filter(shown).length;
+    const addressLines = Math.max(1, Math.ceil(String(detail.partyAddress || '').length / 40));
+    const nameChars = reportType === 'Multi GST Tax Invoice' && isSales ? 22 : isSales ? 42 : 30;
+    const rowMm = 6.8;
+    const itemsMm = detail.items.reduce((sum, item) => {
+      const nameLines = Math.max(1, Math.ceil(String(item.name || '').length / nameChars));
+      const designLines = !isSales ? Math.max(1, Math.ceil(String(item.design || '').length / 16)) : 1;
+      return sum + rowMm * Math.max(nameLines, designLines);
+    }, 0);
+    const headerMm = 86 + Math.max(0, addressLines - 2) * 4.5 + (String(detail.irn || '').length > 60 ? 4 : 0);
+    const totalsMm = 18 + taxLines * 6.5;
+    const bankMm = 34;
+    const tableChromeMm = 16;
+    return headerMm + itemsMm + tableChromeMm + totalsMm + bankMm < 236;
+  })();
+
   const getRows = () => {
     const rows = detail.items.map((item) => {
       if (reportType === 'Multi GST Tax Invoice' && isSales) {
@@ -51,8 +87,8 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
           : (item.amount / ((item.meter || item.weight) || 1));
         return `
           <tr>
-            <td class="left">${item.name || ''}</td>
-            <td class="center">${item.hsnCode || ''}</td>
+            <td class="left">${escapeHtml(item.name || '')}</td>
+            <td class="center">${escapeHtml(item.hsnCode || '')}</td>
             ${renderNumCell(item.taka || 0)}
             ${renderNumCell(item.pallu || 0)}
             ${renderNumCell(num3(item.weight), 'right')}
@@ -66,22 +102,14 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
           </tr>
         `;
       } else if (isSales) {
-        const itemCut = item.cut != null && item.cut > 0 
-          ? item.cut 
-          : (item.weight != null && item.weight > 0 ? item.weight : (item.taka ? (item.meter || 0) / item.taka : 0));
-        const itemRate = item.rate != null && item.rate > 0 
-          ? item.rate 
-          : (item.taka ? item.amount / item.taka : (item.amount / ((item.meter || item.weight) || 1)));
-
+        const qtyCells = salesQtyColumns.map((col) => renderNumCell(
+          col.fractionDigits === 3 ? num3(col.value(item)) : (col.value(item) || 0),
+          col.fractionDigits === 3 ? 'right' : 'center',
+        )).join('');
         return `
           <tr>
-            <td class="left">${item.name || ''}</td>
-            <td class="center">${item.hsnCode || ''}</td>
-            ${renderNumCell(item.taka || 0)}
-            ${renderNumCell(item.pallu || 0)}
-            ${renderNumCell(num3(item.meter), 'right')}
-            ${renderNumCell(num3(itemCut), 'right')}
-            ${renderNumCell(money(itemRate), 'right')}
+            <td class="left">${escapeHtml(item.name || '')}</td>
+            ${qtyCells}
             ${renderNumCell(money(item.amount), 'right', 'amount')}
           </tr>
         `;
@@ -91,9 +119,9 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
           : (item.qty ? item.amount / item.qty : 0);
         return `
           <tr>
-            <td class="left">${item.name || ''}</td>
-            <td class="center">${item.design || ''}</td>
-            <td class="center">${item.hsnCode || ''}</td>
+            <td class="left">${escapeHtml(item.name || '')}</td>
+            <td class="center">${escapeHtml(item.design || '')}</td>
+            <td class="center">${escapeHtml(item.hsnCode || '')}</td>
             ${renderNumCell(item.nos || 0)}
             ${renderNumCell(num3(item.qty))}
             ${renderNumCell(item.cut || 0)}
@@ -104,14 +132,15 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
       }
     }).join('');
 
-    // Filler expands inside the items table so Total stays page-bottom when few lines
+    // Filler only on a short page, so the Total row can sit near the bottom.
+    // Long invoices get no filler — an expanding row would push into the footer.
     const itemCount = detail.items.length;
-    const fillerMinMm = itemCount >= 8 ? 0 : Math.max(0, Math.min(60, 75 - itemCount * 9));
+    const fillerMinMm = singlePage && itemCount <= 4 ? Math.max(0, 24 - itemCount * 5) : 0;
     const emptyCells =
       reportType === 'Multi GST Tax Invoice' && isSales
         ? '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right amount"></td>'
         : isSales
-          ? '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right"></td><td class="right"></td><td class="right"></td><td class="right amount"></td>'
+          ? `<td class="left"></td>${salesQtyColumns.map(() => '<td class="center"></td>').join('')}<td class="right amount"></td>`
           : '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right amount"></td>';
     const fillerRow = fillerMinMm > 0 ? `
       <tr class="filler-row" style="height: ${fillerMinMm}mm;">
@@ -140,15 +169,13 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
         </tr>
       `;
     } else if (isSales) {
+      const qtyHeaders = salesQtyColumns.map((col) =>
+        `<th class="${col.fractionDigits === 3 ? 'right' : 'center'}">${escapeHtml(col.label)}</th>`,
+      ).join('');
       return `
         <tr>
           <th class="left">Item Name</th>
-          <th class="center">HSN Code</th>
-          <th class="center">Pcs</th>
-          <th class="center">Pallu</th>
-          <th class="right">Meter</th>
-          <th class="right">Cut</th>
-          <th class="right">Rate</th>
+          ${qtyHeaders}
           <th class="right">Amount</th>
         </tr>
       `;
@@ -186,14 +213,16 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
         </tr>
       `;
     } else if (isSales) {
+      const qtyTotals = { taka: totalTaka, pallu: totalPallu, weight: totalWeight, meter: totalMeter };
+      const qtyFooter = salesQtyColumns.map((col) => renderNumCell(
+        col.fractionDigits === 3 ? num3(qtyTotals[col.key]) : qtyTotals[col.key],
+        col.fractionDigits === 3 ? 'right' : 'center',
+        'fw-bold',
+      )).join('');
       return `
         <tr class="footer-row">
-          <td colspan="2" class="right" style="font-weight: bold;">Total</td>
-          ${renderNumCell(totalTaka, 'center', 'fw-bold')}
-          ${renderNumCell(totalPallu, 'center', 'fw-bold')}
-          ${renderNumCell(num3(totalMeter), 'right', 'fw-bold')}
-          ${renderNumCell(num3(totalCut), 'right', 'fw-bold')}
-          <td class="center"></td>
+          <td class="right" style="font-weight: bold;">Total</td>
+          ${qtyFooter}
           ${renderNumCell(money(detail.grandTotal), 'right', 'amount fw-bold')}
         </tr>
       `;
@@ -277,7 +306,7 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
         <style>
           @page {
             size: A4;
-            margin: 6mm 8mm;
+            margin: 6mm 7mm;
           }
           * { box-sizing: border-box; }
           html, body {
@@ -288,7 +317,7 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
           body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             color: #1a1a1a;
-            font-size: 11px;
+            font-size: 10.5px;
             -webkit-user-select: none;
             user-select: none;
             caret-color: transparent;
@@ -302,11 +331,34 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
           }
           .container {
             border: 1px solid #2b5797;
-            display: flex;
-            flex-direction: column;
-            min-height: 275mm;
             width: 100%;
             box-sizing: border-box;
+            height: auto;
+            max-height: none;
+            overflow: visible;
+          }
+          /* Short invoices: stretch the items area so the Total row and
+             footer sit at the bottom of a single A4 frame. */
+          .container.fit-page {
+            display: flex;
+            flex-direction: column;
+            min-height: 265mm;
+          }
+          .container.fit-page .header,
+          .container.fit-page .title,
+          .container.fit-page .meta-row,
+          .container.fit-page .info-row,
+          .container.fit-page .invoice-close {
+            flex-shrink: 0;
+          }
+          /* Long invoices: block flow so the table can break onto the next
+             page. A flex column with a fixed height overlaps the footer. */
+          .container.flow-pages {
+            display: block;
+            min-height: 0;
+            height: auto;
+            max-height: none;
+            overflow: visible;
           }
           .header {
             text-align: center;
@@ -401,12 +453,21 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
             width: 100%;
             border-collapse: collapse;
           }
+          .items-table {
+            page-break-inside: auto;
+            break-inside: auto;
+          }
           thead {
             display: table-header-group;
+          }
+          tbody {
+            display: table-row-group;
           }
           tr {
             page-break-inside: avoid;
             break-inside: avoid;
+            page-break-after: auto;
+            break-after: auto;
           }
           th {
             font-size: 9.5px;
@@ -445,45 +506,48 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
             width: 100%;
             white-space: normal;
           }
-          .filler-row {
+          .container.fit-page .filler-row {
             height: 100%;
           }
           .filler-row td {
-            height: 100%;
             border-bottom: none !important;
             vertical-align: top;
             padding-top: 0;
             padding-bottom: 0;
           }
-          .grid-container table.items-table {
+          .container.fit-page .filler-row td {
+            height: 100%;
+          }
+          .container.fit-page .grid-container table.items-table {
             height: 100%;
             flex: 1 1 auto;
           }
-          .grid-container tbody {
+          .container.fit-page .grid-container tbody {
             height: 100%;
+          }
+          .container.flow-pages .items-table,
+          .container.flow-pages .filler-row {
+            height: auto;
+            max-height: none;
           }
           .footer-row td {
             border-top: 1px solid #2b5797;
             border-bottom: 1px solid #2b5797;
             background: #fff;
           }
-          /* Sales 8 cols matching reference */
-          .items-table.cols-8-sales th:nth-child(1),
-          .items-table.cols-8-sales td:nth-child(1) { width: 27%; }
-          .items-table.cols-8-sales th:nth-child(2),
-          .items-table.cols-8-sales td:nth-child(2) { width: 12%; }
-          .items-table.cols-8-sales th:nth-child(3),
-          .items-table.cols-8-sales td:nth-child(3) { width: 7%; }
-          .items-table.cols-8-sales th:nth-child(4),
-          .items-table.cols-8-sales td:nth-child(4) { width: 7%; }
-          .items-table.cols-8-sales th:nth-child(5),
-          .items-table.cols-8-sales td:nth-child(5) { width: 11%; }
-          .items-table.cols-8-sales th:nth-child(6),
-          .items-table.cols-8-sales td:nth-child(6) { width: 10%; }
-          .items-table.cols-8-sales th:nth-child(7),
-          .items-table.cols-8-sales td:nth-child(7) { width: 11%; }
-          .items-table.cols-8-sales th:nth-child(8),
-          .items-table.cols-8-sales td:nth-child(8) { width: 15%; }
+          /* Sales 6 cols: Item | field1 | Pallu | field2/weight | field3/meter | Amount */
+          .items-table.cols-6-sales th:nth-child(1),
+          .items-table.cols-6-sales td:nth-child(1) { width: 38%; }
+          .items-table.cols-6-sales th:nth-child(2),
+          .items-table.cols-6-sales td:nth-child(2) { width: 10%; }
+          .items-table.cols-6-sales th:nth-child(3),
+          .items-table.cols-6-sales td:nth-child(3) { width: 10%; }
+          .items-table.cols-6-sales th:nth-child(4),
+          .items-table.cols-6-sales td:nth-child(4) { width: 13%; }
+          .items-table.cols-6-sales th:nth-child(5),
+          .items-table.cols-6-sales td:nth-child(5) { width: 14%; }
+          .items-table.cols-6-sales th:nth-child(6),
+          .items-table.cols-6-sales td:nth-child(6) { width: 15%; }
 
           /* Purchase / GP 8 cols */
           .items-table.cols-8 th:nth-child(1),
@@ -513,11 +577,23 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
             padding-right: 6px;
           }
           .grid-container {
+            border-bottom: 1px solid #2b5797;
+            overflow: visible;
+            page-break-inside: auto;
+            break-inside: auto;
+          }
+          .container.fit-page .grid-container {
             flex: 1 1 auto;
             display: flex;
             flex-direction: column;
-            min-height: 0;
-            border-bottom: 1px solid #2b5797;
+            min-height: auto;
+          }
+          .container.flow-pages .grid-container {
+            display: block;
+            height: auto;
+            min-height: auto;
+            max-height: none;
+            overflow: visible;
           }
           .right { text-align: right; }
           .center { text-align: center; }
@@ -564,12 +640,32 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
             color: #1a1a1a;
           }
           
+          .invoice-close {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
           .footer {
             display: flex;
             margin-top: auto;
             gap: 8px;
             page-break-inside: avoid;
             break-inside: avoid;
+          }
+          .container.flow-pages .footer {
+            margin-top: 0;
+          }
+          @media print {
+            .container.flow-pages,
+            .container.flow-pages .grid-container {
+              display: block !important;
+              height: auto !important;
+              min-height: 0 !important;
+              max-height: none !important;
+              overflow: visible !important;
+            }
+            .container.flow-pages .items-table {
+              height: auto !important;
+            }
           }
           .bank-details, .signatory {
             flex: 1;
@@ -606,54 +702,58 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
       </head>
       <body>
         <div id="pdf-page">
-        <div class="container">
+        <div class="container ${singlePage ? 'fit-page' : 'flow-pages'}">
           <!-- Header -->
           <div class="header">
-            <div class="company-name">${companyName}</div>
-            ${gstNo ? `<div class="gst-row">${gstNo}</div>` : ''}
-            <div class="company-address">${companyAddress}</div>
+            <div class="company-name">${escapeHtml(companyName)}</div>
+            ${gstNo ? `<div class="gst-row">${escapeHtml(gstNo)}</div>` : ''}
+            <div class="company-address">${escapeHtml(companyAddress)}</div>
           </div>
-          <div class="title">${title}</div>
+          <div class="title">${escapeHtml(title)}</div>
           
           <div class="meta-row" style="flex-direction: column; gap: 4px;">
-            <div style="width: 100%;">Ack No : ${ackText}</div>
-            <div style="width: 100%; word-break: break-all;">IRN : ${detail.irn || ''}</div>
+            <div style="width: 100%;">Ack No : ${escapeHtml(ackText)}</div>
+            <div style="width: 100%; word-break: break-all;">IRN : ${escapeHtml(detail.irn || '')}</div>
           </div>
 
           <div class="info-row">
             <div class="info-col">
               <div class="info-label">Bill To:</div>
-              <div class="info-value">${detail.partyName}</div>
-              <div class="info-address">${detail.partyAddress || ''}</div>
+              <div class="info-value">${escapeHtml(detail.partyName)}</div>
+              <div class="info-address">${escapeHtml(detail.partyAddress || '')}</div>
               <div class="info-meta-sub">
-                ${detail.brokerName ? `<div>Broker : ${detail.brokerName}</div>` : ''}
-                ${detail.gstNo ? `<div>GST No : ${detail.gstNo}</div>` : ''}
-                <div>Mo : ${detail.mobileNo || ''}</div>
+                ${detail.brokerName ? `<div>Broker : ${escapeHtml(detail.brokerName)}</div>` : ''}
+                ${detail.gstNo ? `<div>GST No : ${escapeHtml(detail.gstNo)}</div>` : ''}
+                <div>Mo : ${escapeHtml(detail.mobileNo || '')}</div>
               </div>
             </div>
             <div class="info-col">
               <div class="info-label">Delivery At:</div>
-              <div class="info-value">${detail.deliveryPartyName || detail.partyName}</div>
-              <div class="info-address">${detail.partyAddress || ''}</div>
+              <div class="info-value">${escapeHtml(detail.deliveryPartyName || detail.partyName)}</div>
+              <div class="info-address">${escapeHtml(detail.partyAddress || '')}</div>
               <div class="info-meta-sub">
-                ${detail.gstNo ? `<div>GST No : ${detail.gstNo}</div>` : ''}
-                <div>Mo : ${detail.mobileNo || ''}</div>
+                ${detail.gstNo ? `<div>GST No : ${escapeHtml(detail.gstNo)}</div>` : ''}
+                <div>Mo : ${escapeHtml(detail.mobileNo || '')}</div>
               </div>
             </div>
             <div class="info-col info-invoice-box">
-              <div class="invoice-box-cell invoice-box-no">Invoice No: ${detail.invoiceNo}</div>
+              <div class="invoice-box-cell invoice-box-no">Invoice No: ${escapeHtml(detail.invoiceNo)}</div>
               <div class="invoice-box-cell invoice-box-date">Date: ${toDDMMYYYY(detail.date)}</div>
             </div>
           </div>
 
           <div class="meta-row">
-            <div style="margin-right: 20px;">| Transporter : ${detail.transporter || detail.vehicalNo || ''}</div>
-            <div>| Eway Bill No: ${detail.ewayBillNo || ''}</div>
+            <div style="margin-right: 20px;">| Transporter : ${escapeHtml(
+              (detail.transporter || detail.vehicalNo || '').replace(/<[^>]*>/g, '').trim().toLowerCase() === 'select'
+                ? ''
+                : (detail.transporter || detail.vehicalNo || '').replace(/<[^>]*>/g, '').trim()
+            )}</div>
+            <div>| Eway Bill No: ${escapeHtml(detail.ewayBillNo || '')}</div>
           </div>
 
           <!-- Grid: items + expandable filler + Total -->
           <div class="grid-container">
-            <table class="items-table ${reportType === 'Multi GST Tax Invoice' && isSales ? 'cols-12' : isSales ? 'cols-8-sales' : 'cols-8'}">
+            <table class="items-table ${reportType === 'Multi GST Tax Invoice' && isSales ? 'cols-12' : isSales ? 'cols-6-sales' : 'cols-8'}">
               <thead>
                 ${getGridHeader()}
               </thead>
@@ -664,7 +764,8 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
             </table>
           </div>
 
-          <!-- Totals -->
+          <!-- Totals + footer stay together and follow the item rows -->
+          <div class="invoice-close">
           <div class="totals-block">
             <div class="totals-left"></div>
             <div class="totals-right">
@@ -688,16 +789,17 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
           <div class="footer">
             <div class="bank-details">
               <div class="bank-title">Bank Details</div>
-              <div class="bank-row"><span class="bank-lbl">Bank Name</span><span>: ${bankName}</span></div>
-              <div class="bank-row"><span class="bank-lbl">Branch</span><span>: ${branchName}</span></div>
-              <div class="bank-row"><span class="bank-lbl">Account No</span><span>: ${accountNo}</span></div>
-              <div class="bank-row"><span class="bank-lbl">IFSC Code</span><span>: ${ifscCode}</span></div>
+              <div class="bank-row"><span class="bank-lbl">Bank Name</span><span>: ${escapeHtml(bankName)}</span></div>
+              <div class="bank-row"><span class="bank-lbl">Branch</span><span>: ${escapeHtml(branchName)}</span></div>
+              <div class="bank-row"><span class="bank-lbl">Account No</span><span>: ${escapeHtml(accountNo)}</span></div>
+              <div class="bank-row"><span class="bank-lbl">IFSC Code</span><span>: ${escapeHtml(ifscCode)}</span></div>
             </div>
             <div class="signatory">
-              <div class="sign-title">For, ${companyName}</div>
+              <div class="sign-title">For, ${escapeHtml(companyName)}</div>
               <div class="sign-note">* This is computer generated Invoice. Signature Not Required</div>
               <div class="auth-sign">Authorised Signatory</div>
             </div>
+          </div>
           </div>
           
         </div>

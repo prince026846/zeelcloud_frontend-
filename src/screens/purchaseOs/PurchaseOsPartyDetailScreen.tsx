@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share, Switch, Linking } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Share, Switch, Linking, useWindowDimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { ZIcon as Icon } from '../../components/ZIcon';
@@ -17,6 +17,18 @@ import { formatCurrency } from '../../utils/currency';
 import { toDDMMYY } from '../../utils/formatDate';
 import { generateOutstandingReportPDF } from '../../utils/pdfGenerator';
 import { useCompanyStore } from '../../store/companyStore';
+import { layoutSalesOsBillColumns, salesOsTermHeader } from '../salesOs/salesOsBillLayout';
+
+const PARTY_GRID_FONT_CAP = 1;
+const partyGridMetrics = {
+  cellPaddingHorizontal: 2,
+  maxFontSizeMultiplier: PARTY_GRID_FONT_CAP,
+  constrainText: true,
+} as const;
+
+function PartyGridText(props: React.ComponentProps<typeof GridText>) {
+  return <GridText {...props} fitWidth maxFontSizeMultiplier={PARTY_GRID_FONT_CAP} />;
+}
 
 type Props = {
   navigation: NativeStackNavigationProp<PurchaseOsStackParamList, 'PurchaseOsPartyDetail'>;
@@ -37,6 +49,8 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
     const [showInterest, setShowInterest] = useState(false);
   const interestCalc = useInlineInterest();
   const [activeFilter, setActiveFilter] = useState(filter || { onlyDue: false });
+  const { width: windowWidth } = useWindowDimensions();
+  const showCompanyRef = filter?.commonCompany === true;
 
   useEffect(() => {
     setLoading(true);
@@ -72,10 +86,22 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
   // OG summary: broker comes from the party's bills (vv_brocker_name).
   const brokerName = invoices.find((i) => i.brokerName)?.brokerName;
 
-  // OG .NET grid columns — same layout as SalesOsPartyDetailPage, fits screen width.
+  // Same column math as Sales O/s party detail, including the optional company
+  // short code. Terms stays wide enough for one line.
+  const billLayout = useMemo(
+    () => layoutSalesOsBillColumns({
+      windowWidth,
+      showCompanyRef,
+      showInterest,
+      interestOnBasic: interestCalc.interestBase === 'basic',
+    }),
+    [windowWidth, showCompanyRef, showInterest, interestCalc.interestBase],
+  );
+  const colWidth = (key: string) => billLayout.widths[key];
+
   const billColumns: GridColumn<PurchaseOsInvoice>[] = [
     {
-      key: 'sel', label: '', width: 24,
+      key: 'sel', label: '', width: colWidth('sel'),
       render: (inv) => (
         <Icon
           name={selectedIds.includes(inv.id) ? 'checkbox-marked' : 'checkbox-blank-outline'}
@@ -84,25 +110,79 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
         />
       ),
     },
-        { key: 'bookCode', label: 'Book', width: 32, align: 'left' },
-    { key: 'number', label: 'Bill No', flex: 1.1, align: 'left', render: (inv) => <GridText align="left" bold fontSize={showInterest ? 10 : undefined}>{inv.number}</GridText> },
-    { key: 'date', label: 'Date', flex: 1.0, render: (inv) => <GridText>{toDDMMYY(inv.date)}</GridText> },
-    { key: 'termDays', label: 'Terms', width: 35, align: 'right', render: (inv) => <GridText align="right">{String(inv.termDays ?? 0)}</GridText> },
-    { key: 'totalDueDays', label: 'Total Due', width: showInterest ? 28 : 35, render: (inv) => <GridText fontSize={showInterest ? 10 : undefined}>{String(inv.totalDueDays ?? 0)}</GridText> },
+    ...(showCompanyRef
+      ? [{
+          key: 'companyRef',
+          label: 'Cmp',
+          width: colWidth('companyRef'),
+          numberOfLines: 1,
+          headerNumberOfLines: 1,
+          render: (inv: PurchaseOsInvoice) => (
+            <PartyGridText numberOfLines={1}>{inv.companyRef || ''}</PartyGridText>
+          ),
+        } satisfies GridColumn<PurchaseOsInvoice>]
+      : []),
+    { key: 'bookCode', label: 'Book', width: colWidth('bookCode'), align: 'left' },
     {
-      key: 'dueDays', label: 'Due Days', width: showInterest ? 28 : 35,
+      key: 'number',
+      label: 'Bill No',
+      width: colWidth('number'),
+      align: 'left',
+      render: (inv) => <PartyGridText align="left" bold numberOfLines={2}>{inv.number}</PartyGridText>,
+    },
+    {
+      key: 'date',
+      label: 'Date',
+      width: colWidth('date'),
       render: (inv) => (
-        <GridText bold color={-inv.daysLeft > 0 ? Colors.danger : Colors.success}>
-          {String(-inv.daysLeft)}
-        </GridText>
+        <PartyGridText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+          {toDDMMYY(inv.date)}
+        </PartyGridText>
       ),
     },
-    { key: 'outstanding', label: 'Amount', flex: showInterest ? 1.1 : 1.4, render: (inv) => <GridText>{`₹${inv.outstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}</GridText> },
+    {
+      key: 'termDays',
+      label: salesOsTermHeader(colWidth('termDays')),
+      width: colWidth('termDays'),
+      headerNumberOfLines: 1,
+      align: 'right',
+      render: (inv) => <PartyGridText align="right" numberOfLines={1}>{String(inv.termDays ?? 0)}</PartyGridText>,
+    },
+    {
+      key: 'totalDueDays',
+      label: 'Total Due',
+      width: colWidth('totalDueDays'),
+      render: (inv) => <PartyGridText numberOfLines={1}>{String(inv.totalDueDays ?? 0)}</PartyGridText>,
+    },
+    {
+      key: 'dueDays',
+      label: 'Due Days',
+      width: colWidth('dueDays'),
+      render: (inv) => (
+        <PartyGridText bold numberOfLines={1} color={-inv.daysLeft > 0 ? Colors.danger : Colors.success}>
+          {String(-inv.daysLeft)}
+        </PartyGridText>
+      ),
+    },
+    {
+      key: 'outstanding',
+      label: 'Amount',
+      width: colWidth('outstanding'),
+      render: (inv) => (
+        <PartyGridText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {`₹${inv.outstanding.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+        </PartyGridText>
+      ),
+    },
     ...(showInterest ? [{
       key: 'interest',
       label: interestCalc.interestBase === 'basic' ? 'Int (Basic)' : 'Interest',
-      flex: 1.0,
-      render: (inv: any) => <GridText>{`₹ ${interestCalc.calculateBillInterest(inv).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}</GridText>
+      width: colWidth('interest'),
+      render: (inv: PurchaseOsInvoice) => (
+        <PartyGridText numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {`₹ ${interestCalc.calculateBillInterest(inv).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`}
+        </PartyGridText>
+      ),
     }] : [])
   ];
 
@@ -129,6 +209,7 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
       periodTo: filter?.toDate,
       date: new Date().toISOString(),
       invoices: billsToPrint,
+      showCompanyCode: showCompanyRef,
       showInterest,
       interestBase: interestCalc.interestBase,
       totals: {
@@ -236,14 +317,37 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
             </View>
           )}
 
-          <GridTable
-            columns={billColumns}
-            data={visibleInvoices}
-            keyExtractor={(inv, idx) => `${inv.id}-${idx}`}
-            onRowPress={(inv) => toggleBill(inv.id)}
-            rowStyle={(inv) => (selectedIds.includes(inv.id) ? styles.rowSelected : undefined)}
-            emptyText="No pending invoices"
-          />
+          {billLayout.scrolls ? (
+            <ScrollView
+              horizontal
+              nestedScrollEnabled
+              showsHorizontalScrollIndicator
+              bounces={false}
+              style={{ width: windowWidth }}
+            >
+              <View style={{ width: billLayout.tableWidth }}>
+                <GridTable
+                  columns={billColumns}
+                  data={visibleInvoices}
+                  keyExtractor={(inv, idx) => `${inv.id}-${idx}`}
+                  onRowPress={(inv) => toggleBill(inv.id)}
+                  rowStyle={(inv) => (selectedIds.includes(inv.id) ? styles.rowSelected : undefined)}
+                  emptyText="No pending invoices"
+                  {...partyGridMetrics}
+                />
+              </View>
+            </ScrollView>
+          ) : (
+            <GridTable
+              columns={billColumns}
+              data={visibleInvoices}
+              keyExtractor={(inv, idx) => `${inv.id}-${idx}`}
+              onRowPress={(inv) => toggleBill(inv.id)}
+              rowStyle={(inv) => (selectedIds.includes(inv.id) ? styles.rowSelected : undefined)}
+              emptyText="No pending invoices"
+              {...partyGridMetrics}
+            />
+          )}
 
           {visibleInvoices.length > 0 && !showInterest ? (
             <View style={[styles.selectedRow, styles.sectionPad]}>

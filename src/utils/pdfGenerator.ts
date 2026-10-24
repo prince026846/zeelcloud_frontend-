@@ -31,6 +31,8 @@ export interface PDFReportData {
   periodTo?: string;
   date: string;
   invoices: any[]; // The bills to show (flat fallback / totals source)
+  /** Common Company ON: show each bill's company short code (companyRef / vv_cmp). */
+  showCompanyCode?: boolean;
   showInterest: boolean;
   interestBase?: InterestBaseMode;
   totals: {
@@ -58,6 +60,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
     periodTo,
     date,
     invoices,
+    showCompanyCode = false,
     showInterest,
     interestBase = 'net',
     totals,
@@ -83,6 +86,10 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
     const billNo = inv.number || inv.billNo || inv.id || '';
     const billDate = toDDMMYY(inv.date || inv.billDate || '') || '';
     const bookCode = inv.bookCode || '';
+    const companyCode = (typeof inv.companyRef === 'string' ? inv.companyRef : '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
     const amount = inv.outstanding ?? inv.balance ?? inv.netBalance ?? 0;
     const termDays = inv.termDays ?? inv.creditDays ?? 0;
     const totalDueDays = inv.totalDueDays ?? 0;
@@ -105,8 +112,13 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
       interestStr = `<td class="right">${Number(intAmt || 0).toFixed(2)}</td>`;
     }
 
+    const companyCell = showCompanyCode
+      ? `<td class="center col-cmp">${companyCode}</td>`
+      : '';
+
     return `
       <tr>
+        ${companyCell}
         <td class="center">${bookCode}</td>
         <td class="center">${billNo}</td>
         <td class="center">${billDate}</td>
@@ -120,7 +132,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
     `;
   };
 
-  const colCount = withInterest ? 9 : 8;
+  const colCount = (withInterest ? 9 : 8) + (showCompanyCode ? 1 : 0);
 
   const renderPartyBlock = (name: string, address: string, broker: string, billRows: string) => `
               <tr>
@@ -281,16 +293,31 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
             word-break: break-word;
             overflow-wrap: anywhere;
           }
-          /* Narrow day cols; give amount/interest room so digits stay readable */
-          .bill-table th:nth-child(1) { width: 7%; }
-          .bill-table th:nth-child(2) { width: 9%; }
-          .bill-table th:nth-child(3) { width: 10%; }
-          .bill-table th:nth-child(4) { width: 14%; }
-          .bill-table th:nth-child(5) { width: 8%; }
-          .bill-table th:nth-child(6) { width: 8%; }
-          .bill-table th:nth-child(7) { width: 8%; }
-          .bill-table th:nth-child(8) { width: 18%; }
-          .bill-table th:nth-child(9) { width: 18%; }
+          /* Narrow day cols; give amount/interest room so digits stay readable.
+             Classes (not nth-child) keep each header over its values when CMP is inserted. */
+          .bill-table th.col-book { width: 7%; }
+          .bill-table th.col-bill { width: 9%; }
+          .bill-table th.col-date { width: 10%; }
+          .bill-table th.col-bamt { width: 14%; }
+          .bill-table th.col-terms { width: 8%; }
+          .bill-table th.col-tdue { width: 8%; }
+          .bill-table th.col-ddue { width: 8%; }
+          .bill-table th.col-os { width: 18%; }
+          .bill-table th.col-int { width: 18%; }
+          .bill-table.with-cmp th.col-cmp { width: 6%; }
+          .bill-table.with-cmp th.col-book { width: 6%; }
+          .bill-table.with-cmp th.col-bill { width: 9%; }
+          .bill-table.with-cmp th.col-date { width: 10%; }
+          .bill-table.with-cmp th.col-bamt { width: 13%; }
+          .bill-table.with-cmp th.col-terms { width: 7%; }
+          .bill-table.with-cmp th.col-tdue { width: 7%; }
+          .bill-table.with-cmp th.col-ddue { width: 7%; }
+          .bill-table.with-cmp th.col-os { width: 17%; }
+          .bill-table.with-cmp th.col-int { width: 18%; }
+          .bill-table td.col-cmp {
+            white-space: nowrap;
+            font-size: 10px;
+          }
           .bill-table td.right {
             white-space: nowrap;
             overflow-wrap: normal;
@@ -381,18 +408,19 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
           </div>
           ${brokerMetaRow}
 
-          <table class="bill-table">
+          <table class="bill-table${showCompanyCode ? ' with-cmp' : ''}">
             <thead>
               <tr>
-                <th class="center">BOOK</th>
-                <th class="center">BILL NO</th>
-                <th class="center">BILL DATE</th>
-                <th class="right">BILL AMOUNT</th>
-                <th class="center">TERMS DAYS</th>
-                <th class="center">TOTAL DUE</th>
-                <th class="center">DUE DAYS</th>
-                <th class="right">O/S AMOUNT</th>
-                ${withInterest ? `<th class="right">INTEREST${interestBase === 'basic' ? ' (BASIC)' : ''}</th>` : ''}
+                ${showCompanyCode ? '<th class="center col-cmp">CMP</th>' : ''}
+                <th class="center col-book">BOOK</th>
+                <th class="center col-bill">BILL NO</th>
+                <th class="center col-date">BILL DATE</th>
+                <th class="right col-bamt">BILL AMOUNT</th>
+                <th class="center col-terms">TERMS DAYS</th>
+                <th class="center col-tdue">TOTAL DUE</th>
+                <th class="center col-ddue">DUE DAYS</th>
+                <th class="right col-os">O/S AMOUNT</th>
+                ${withInterest ? `<th class="right col-int">INTEREST${interestBase === 'basic' ? ' (BASIC)' : ''}</th>` : ''}
               </tr>
             </thead>
             <tbody>
@@ -447,7 +475,7 @@ export const generateOutstandingReportPDF = async (data: PDFReportData) => {
               <div class="summary-line border-bottom"><div class="lbl">TDS(10%):</div><span>- ${totals.tds.toFixed(2)}</span></div>
               <div class="summary-line"><div class="lbl">Net Interest Amount After TDS:</div><span>${totals.netInterest.toFixed(2)}</span></div>
               ` : ''}
-              <div class="summary-line border-bottom"><div class="lbl">Bill Amount${interestBase === 'basic' ? ' (Basic)' : ''}:</div><span>${totals.selectedBillAmount.toFixed(2)}</span></div>
+              <div class="summary-line border-bottom"><div class="lbl">Bill O/S Amount:</div><span>${totals.selectedBillAmount.toFixed(2)}</span></div>
               <div class="summary-line"><div class="lbl" style="font-weight: bold;">Total Selected Bill O/s:</div><span style="font-weight: bold;">${(withInterest ? totals.totalSelectedOs : totals.selectedBillAmount).toFixed(2)}</span></div>
             </div>
             <div class="green-footer">

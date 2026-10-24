@@ -117,6 +117,24 @@ const asNumber = (value: unknown, fallback = 0): number => {
 const asString = (value: unknown, fallback = ''): string =>
   typeof value === 'string' ? value : fallback;
 
+/**
+ * Company short code stored on the outstanding bill as VV_Cmp.
+ * This is a short text code, separate from the numeric VN_Company_Id.
+ * Blank, null, and non-text values stay blank. The company id is never used.
+ */
+export function readCompanyShortCode(item: JsonRecord): string {
+  return asCleanString(item.vv_cmp ?? item.VV_Cmp);
+}
+
+export const asCleanString = (value: unknown, fallback = ''): string => {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  if (!trimmed || /^<.*>$/i.test(trimmed) || trimmed.toLowerCase() === 'null' || trimmed.toLowerCase() === 'none') {
+    return fallback;
+  }
+  return trimmed;
+};
+
 export const extractDataArray = (payload: unknown): JsonRecord[] => {
   if (Array.isArray(payload)) return payload.map(asRecord);
   const record = asRecord(payload);
@@ -247,7 +265,7 @@ export const mapBillToSalesInvoice = (item: JsonRecord, partyId: string): SalesO
     totalDueDays: asNumber(item.total_due_days),
     termDays: asNumber(item.vn_due_days),
     amountBeforeGst: asNumber(item.vn_amount_befor_gst ?? item.VN_Amount_Befor_Gst),
-    companyRef: asString(item.vv_cmp),
+    companyRef: readCompanyShortCode(item),
     bookCode: asString(item.vv_book_code),
     brokerName: asString(item.vv_brocker_name),
   };
@@ -334,7 +352,7 @@ const mapBillToPurchaseInvoice = (item: JsonRecord, partyId: string): PurchaseOs
     totalDueDays: asNumber(item.total_due_days),
     termDays: asNumber(item.vn_due_days),
     amountBeforeGst: asNumber(item.vn_amount_befor_gst ?? item.VN_Amount_Befor_Gst),
-    companyRef: asString(item.vv_cmp),
+    companyRef: readCompanyShortCode(item),
     bookCode: asString(item.vv_book_code),
     brokerName: asString(item.vv_brocker_name),
   };
@@ -347,7 +365,7 @@ export const mapBillToGpInvoice = (item: JsonRecord): GpOsInvoice => {
   return {
     id: `${companyId}-${billNo}`,
     companyId,
-    companyRef: asString(item.vv_cmp),
+    companyRef: readCompanyShortCode(item),
     bookCode: asString(item.vv_book_code),
     billNo,
     billDate: asString(item.vd_bill_date),
@@ -666,18 +684,18 @@ export const mapBillDetail = (record: JsonRecord, module: 'sales' | 'purchase' |
         ? String(record.vn_invoice_no)
         : String(record.vn_invoice_id ?? ''),
     date: asString(record.vd_invoice_date),
-    partyName: asString(record.party_name) || asString(asRecord(asRecord(record.account).party).vv_party_name),
+    partyName: asCleanString(record.party_name) || asCleanString(asRecord(asRecord(record.account).party).vv_party_name),
     partyAddress: composePartyAddress(asRecord(record.account)),
-    deliveryPartyName: asString(record.delivery_party_name) || asString(asRecord(asRecord(record.account).delivery_party).vv_party_name),
-    vehicalNo: asString(record.vv_vehical_no),
-    transporter: asString(record.vv_transport) || undefined,
-    ewayBillNo: asString(record.vv_eway_bill_no),
-    irn: asString(record.vv_irn),
-    ackNo: asString(record.vv_ack_no),
-    ackDate: asString(record.vv_ack_date) || undefined,
-    brokerName: asString(record.vv_brocker_name) || undefined,
-    gstNo: asString(asRecord(asRecord(record.account).party).vv_gstin_no) || undefined,
-    mobileNo: asString(asRecord(asRecord(record.account).party).vv_mobile) || asString(asRecord(asRecord(record.account).party).phone) || undefined,
+    deliveryPartyName: asCleanString(record.delivery_party_name) || asCleanString(asRecord(asRecord(record.account).delivery_party).vv_party_name),
+    vehicalNo: asCleanString(record.vv_vehical_no),
+    transporter: asCleanString(record.vv_transport) || undefined,
+    ewayBillNo: asCleanString(record.vv_eway_bill_no),
+    irn: asCleanString(record.vv_irn),
+    ackNo: asCleanString(record.vv_ack_no),
+    ackDate: asCleanString(record.vv_ack_date) || undefined,
+    brokerName: asCleanString(record.vv_brocker_name) || undefined,
+    gstNo: asCleanString(asRecord(asRecord(record.account).party).vv_gstin_no) || undefined,
+    mobileNo: asCleanString(asRecord(asRecord(record.account).party).vv_mobile) || asCleanString(asRecord(asRecord(record.account).party).phone) || undefined,
     field1: asString(record.field1) || undefined,
     field2: asString(record.field2) || undefined,
     field3: asString(record.field3) || undefined,

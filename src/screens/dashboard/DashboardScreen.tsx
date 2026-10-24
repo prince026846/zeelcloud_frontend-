@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,10 +10,10 @@ import { LastSyncBadge } from '../../components/LastSyncBadge';
 import { BookmarkEditModal } from '../../components/BookmarkEditModal';
 import { useBookmarkStore } from '../../store/bookmarkStore';
 import { APP_MODULES, getAuthorizedModules } from '../../data/modules';
-import { dashboardApi, companyApi } from '../../services/api';
 import { useCompanyStore } from '../../store/companyStore';
 import { useAuthStore } from '../../store/authStore';
 import { formatCurrency, formatPercent } from '../../utils/currency';
+import { outstandingForModule } from './outstandingTotals';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../theme';
 import type { AppStackParamList, BankAccount } from '../../types';
 
@@ -28,18 +28,19 @@ export const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const { user } = useAuthStore();
   const { bookmarks } = useBookmarkStore();
-  const { selectedCompany } = useCompanyStore();
-  const [osSummary, setOsSummary] = useState<OsSummary>({ totalPurchase: 0, totalSales: 0, totalGp: 0 });
+  const { selectedCompany, isLoading: companiesLoading } = useCompanyStore();
   const [editingBookmarks, setEditingBookmarks] = useState(false);
   const [selectedBar, setSelectedBar] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (selectedCompany?.recordId) {
-      companyApi.getSummary(String(selectedCompany.recordId)).then(setOsSummary).catch(() => {});
-    } else {
-      setOsSummary({ totalPurchase: 0, totalSales: 0, totalGp: 0 });
-    }
-  }, [selectedCompany?.recordId]);
+  // Company list rows already carry os totals filtered by vn_company_id.
+  // Reading them here keeps a company switch instant and avoids painting the
+  // previous company's figures while another request is in flight.
+  const outstanding = selectedCompany?.os ?? null;
+  const totalsStatus = !selectedCompany
+    ? (companiesLoading ? 'Loading outstanding totals…' : 'Select a company to see outstanding totals')
+    : outstanding == null
+      ? 'Outstanding totals are unavailable for this company'
+      : null;
 
   // Resolve saved bookmark keys into module definitions (in saved order), filtered by auth.
   const authorizedModules = getAuthorizedModules(user);
@@ -49,6 +50,8 @@ export const DashboardScreen: React.FC = () => {
 
   const accounts = selectedCompany?.banks || [];
   const totalBalance = accounts.reduce((sum, a) => sum + (a.dc === 'DB' ? a.balance : -a.balance), 0);
+
+  const osSummary: OsSummary = outstanding ?? { totalPurchase: 0, totalSales: 0, totalGp: 0 };
 
   // Build chart bars from real OS totals
   const osBars = [
@@ -111,7 +114,9 @@ export const DashboardScreen: React.FC = () => {
           </TouchableOpacity>
         ) : (
           <View style={styles.bookmarkGrid}>
-            {bookmarkedModules.map((b) => (
+            {bookmarkedModules.map((b) => {
+              const outstandingAmount = outstandingForModule(b.key, outstanding);
+              return (
               <TouchableOpacity
                 key={b.key}
                 style={styles.bookmarkCard}
@@ -121,14 +126,27 @@ export const DashboardScreen: React.FC = () => {
                 <View style={[styles.bookmarkIcon, { backgroundColor: `${b.color}1A` }]}>
                   <Icon name={b.icon} size={22} color={b.color} />
                 </View>
-                <Text style={styles.bookmarkLabel} numberOfLines={2}>{b.label}</Text>
+                <View style={styles.bookmarkText}>
+                  <Text style={styles.bookmarkLabel} numberOfLines={2}>{b.label}</Text>
+                  {outstandingAmount != null ? (
+                    <Text
+                      style={styles.bookmarkAmount}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.7}
+                    >
+                      {formatCurrency(outstandingAmount)}
+                    </Text>
+                  ) : null}
+                </View>
                 {b.comingSoon ? (
                   <View style={styles.comingSoonBadge}>
                     <Text style={styles.comingSoonText}>Soon</Text>
                   </View>
                 ) : null}
               </TouchableOpacity>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -177,7 +195,9 @@ export const DashboardScreen: React.FC = () => {
             })}
           </View>
 
-          {activeBar ? (
+          {totalsStatus ? (
+            <Text style={styles.chartHint}>{totalsStatus}</Text>
+          ) : activeBar ? (
             <View style={styles.tooltip}>
               <View style={styles.tooltipHeader}>
                 <View style={[styles.legendDot, { backgroundColor: activeBar.color }]} />
@@ -304,7 +324,14 @@ const styles = StyleSheet.create({
     ...Shadows.card,
   },
   bookmarkIcon: { width: 40, height: 40, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
-  bookmarkLabel: { flex: 1, fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.semiBold, color: Colors.textPrimary },
+  bookmarkText: { flex: 1, minWidth: 0 },
+  bookmarkLabel: { fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.semiBold, color: Colors.textPrimary },
+  bookmarkAmount: {
+    marginTop: 2,
+    fontSize: Typography.fontSizes.xs,
+    fontWeight: Typography.fontWeights.bold,
+    color: Colors.primary,
+  },
   comingSoonBadge: {
     marginTop: 4,
     alignSelf: 'flex-start',

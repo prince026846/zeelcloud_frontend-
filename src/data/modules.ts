@@ -45,8 +45,8 @@ export const isComingSoonRoute = (route: string): boolean =>
 export const APP_MODULES: AppModule[] = [
   { key: 'SalesRegisterStack', label: 'Sales Register', icon: 'receipt', color: Colors.primary, route: 'SalesRegisterStack' },
   { key: 'PurchaseRegisterStack', label: 'Purchase Register', icon: 'clipboard-list-outline', color: Colors.primaryLight, route: 'PurchaseRegisterStack' },
-  { key: 'SalesOsStack', label: 'AR Outstanding', icon: 'currency-inr', color: Colors.success, route: 'SalesOsStack' },
-  { key: 'PurchaseOsStack', label: 'AP Outstanding', icon: 'cart-outline', color: Colors.warning, route: 'PurchaseOsStack' },
+  { key: 'SalesOsStack', label: 'Sales OS', icon: 'currency-inr', color: Colors.success, route: 'SalesOsStack' },
+  { key: 'PurchaseOsStack', label: 'Purchase OS', icon: 'cart-outline', color: Colors.warning, route: 'PurchaseOsStack' },
   { key: 'GpOsStack', label: 'GP Outstanding', icon: 'file-document-check-outline', color: Colors.purple500, route: 'GpOsStack' },
   { key: 'GpRegisterStack', label: 'GP Register', icon: 'chart-bar', color: Colors.blue500, route: 'GpRegisterStack' },
   { key: 'StockStack', label: 'Non-Issue', icon: 'format-list-text', color: Colors.danger, route: 'StockStack' },

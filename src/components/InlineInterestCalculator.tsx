@@ -98,9 +98,11 @@ export const useInlineInterest = () => {
     return Math.round((interest + Number.EPSILON) * 100) / 100;
   };
 
-  const calculateSelectedBillAmount = (invoices: any[], mode?: InterestBaseMode): number => {
-    const activeMode = mode ?? interestBase;
-    return invoices.reduce((sum, inv) => sum + getBillBaseAmount(inv, activeMode), 0);
+  const calculateSelectedBillAmount = (invoices: any[]): number => {
+    return invoices.reduce((sum, inv) => {
+      const netAmount = Number(inv?.outstanding ?? inv?.balance ?? inv?.netBalance ?? inv?.amount ?? 0) || 0;
+      return sum + netAmount;
+    }, 0);
   };
 
   const calculateTotalInterest = (invoices: any[], mode?: InterestBaseMode): number => {
@@ -227,7 +229,7 @@ export const InlineInterestCalculator: React.FC<InlineInterestCalculatorProps> =
           <Text style={styles.valueCompact}>{formatMoney(netInterest)}</Text>
         </View>
         <View style={styles.rowCompact}>
-          <Text style={styles.labelCompact}>Selected Bill Amount{isBasic ? ' (Basic)' : ''}:</Text>
+          <Text style={styles.labelCompact}>Bill O/S Amount:</Text>
           <Text style={styles.valueCompact}>{formatMoney(selectedBillAmount)}</Text>
         </View>
         
