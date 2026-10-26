@@ -9,18 +9,30 @@ import { useCompanyStore } from '../../store/companyStore';
 import { formatCurrency } from '../../utils/currency';
 import { toDDMMYYYY } from '../../utils/formatDate';
 import type { SalesOrder } from '../../types';
-
+import { useAuthStore } from '../../store/authStore';
 import type { SalesOrderStackParamList } from '../../types';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export const SalesOrderListScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<SalesOrderStackParamList>>();
+  const hasAccess = useAuthStore((s) => s.user?.isSalesOrderCreationAllowed === true);
   const { selectedCompany } = useCompanyStore();
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (!hasAccess) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        (navigation as any).navigate('Dashboard');
+      }
+    }
+  }, [hasAccess, navigation]);
+
   const fetchOrders = async () => {
+    if (!hasAccess) return;
     setLoading(true);
     try {
       const data = await salesOrdersApi.getAll(selectedCompany?.recordId ? String(selectedCompany.recordId) : undefined);
@@ -33,17 +45,25 @@ export const SalesOrderListScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, [selectedCompany?.recordId]);
+    if (hasAccess) {
+      fetchOrders();
+    }
+  }, [hasAccess, selectedCompany?.recordId]);
 
   // Optionally, you might want to refresh when returning from Create/Edit screen.
   // Using useFocusEffect or a simpler listener:
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      fetchOrders();
+      if (hasAccess) {
+        fetchOrders();
+      }
     });
     return unsubscribe;
-  }, [navigation, selectedCompany?.recordId]);
+  }, [hasAccess, navigation, selectedCompany?.recordId]);
+
+  if (!hasAccess) {
+    return null;
+  }
 
   const handleDelete = (id: string | number) => {
     Alert.alert(

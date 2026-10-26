@@ -238,9 +238,9 @@ export const PurchaseOsPartyDetailScreen: React.FC<Props> = ({ navigation, route
         {/* OG-style summary header: party, address, broker, dates, Total O/s. */}
         <View style={styles.ogSummary}>
           <View style={styles.summaryTopRow}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.summaryCopy}>
               <Text style={styles.ogParty} numberOfLines={1}>{party.name}</Text>
-              <Text style={styles.ogAddress} numberOfLines={1}>
+              <Text style={styles.ogAddress}>
                 {party.city ? `${party.city} | ` : ''}Broker: {brokerName || 'DIRECT'}
               </Text>
               {filter?.fromDate || filter?.toDate ? (
@@ -393,10 +393,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  summaryCopy: { flex: 1, flexShrink: 1, minWidth: 0, paddingRight: Spacing.sm },
   summaryBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 4 },
   ogParty: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
   addressRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm, marginTop: 2 },
-  ogAddress: { flex: 1, fontSize: 10, fontStyle: 'italic', color: Colors.textSecondary },
+  ogAddress: { fontSize: 10, fontStyle: 'italic', color: Colors.textSecondary },
   waIcon: { padding: 4, backgroundColor: Colors.whatsappLight, borderRadius: 20 },
   ogLine: { fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.semiBold, color: Colors.textPrimary, marginTop: 2 },
   ogTotal: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.gradientStart },

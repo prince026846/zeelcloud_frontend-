@@ -1072,8 +1072,11 @@ export const quotationsApi = {
     const data = payload.data && typeof payload.data === 'object' ? payload.data : payload;
     return mapQuotation(data as Record<string, unknown>);
   },
-  getNextNumber: async (companyId: string | number): Promise<string> => {
-    const payload = await apiFetch<{ next_number?: string }>(`/quotations/next-number/?company=${companyId}`);
+  getNextNumber: async (companyId: string | number, year?: number): Promise<string> => {
+    const yearQuery = year ? `&year=${year}` : '';
+    const payload = await apiFetch<{ next_number?: string }>(
+      `/quotations/next-number/?company=${companyId}${yearQuery}`,
+    );
     return payload?.next_number || '';
   },
   create: async (data: CreateQuotationPayload): Promise<Quotation> => {
@@ -1097,11 +1100,11 @@ export const quotationsApi = {
   },
   sendEmail: async (
     id: string,
-    emailData?: { email?: string; cc_email?: string; subject?: string; message?: string }
+    emailData?: FormData | { email?: string; cc_email?: string; subject?: string; message?: string; pdf?: string; pdf_base64?: string }
   ): Promise<{ status?: string; detail?: string }> => {
     return await apiFetch<{ status?: string; detail?: string }>(`/quotations/${id}/send-email/`, {
       method: 'POST',
-      body: JSON.stringify(emailData || {}),
+      body: emailData instanceof FormData ? emailData : JSON.stringify(emailData || {}),
     });
   },
 };
@@ -1173,8 +1176,11 @@ export const proformaInvoicesApi = {
     const data = payload.data && typeof payload.data === 'object' ? payload.data : payload;
     return mapProformaInvoice(data as Record<string, unknown>);
   },
-  getNextNumber: async (companyId: string | number): Promise<string> => {
-    const payload = await apiFetch<{ next_number?: string }>(`/proforma-invoices/next-number/?company=${companyId}`);
+  getNextNumber: async (companyId: string | number, year?: number): Promise<string> => {
+    const yearQuery = year ? `&year=${year}` : '';
+    const payload = await apiFetch<{ next_number?: string }>(
+      `/proforma-invoices/next-number/?company=${companyId}${yearQuery}`,
+    );
     return payload?.next_number || '';
   },
   create: async (data: CreateProformaInvoicePayload): Promise<ProformaInvoice> => {
@@ -1198,11 +1204,11 @@ export const proformaInvoicesApi = {
   },
   sendEmail: async (
     id: string,
-    emailData?: { email?: string; cc_email?: string; subject?: string; message?: string }
+    emailData?: FormData | { email?: string; cc_email?: string; subject?: string; message?: string; pdf?: string; pdf_base64?: string }
   ): Promise<{ status?: string; detail?: string }> => {
     return await apiFetch<{ status?: string; detail?: string }>(`/proforma-invoices/${id}/send-email/`, {
       method: 'POST',
-      body: JSON.stringify(emailData || {}),
+      body: emailData instanceof FormData ? emailData : JSON.stringify(emailData || {}),
     });
   },
 };

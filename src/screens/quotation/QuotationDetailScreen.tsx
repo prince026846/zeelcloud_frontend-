@@ -23,7 +23,7 @@ import { InputField } from '../../components/InputField';
 import { useCompanyStore } from '../../store/companyStore';
 import { quotationsApi } from '../../services/api';
 import { toDDMMYYYY } from '../../utils/formatDate';
-import { openQuotationPdfPreview, shareQuotationPdfFile, numberToWordsINR } from '../../utils/quotationPdfGenerator';
+import { openQuotationPdfPreview, shareQuotationPdfFile, generateQuotationPdfFile, numberToWordsINR } from '../../utils/quotationPdfGenerator';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../theme';
 import type { QuotationStackParamList, Quotation } from '../../types';
 
@@ -85,6 +85,10 @@ export const QuotationDetailScreen: React.FC = () => {
   };
 
   const handleSendEmail = async () => {
+    if (!quotation) {
+      Alert.alert('Error', 'Quotation data is still loading.');
+      return;
+    }
     if (!recipientEmail.trim()) {
       Alert.alert('Email Required', 'Please enter a recipient email address.');
       return;
@@ -92,12 +96,21 @@ export const QuotationDetailScreen: React.FC = () => {
 
     setSendingEmail(true);
     try {
-      const response = await quotationsApi.sendEmail(id, {
-        email: recipientEmail.trim(),
-        cc_email: ccEmail.trim(),
-        subject: emailSubject.trim(),
-        message: emailMessage.trim(),
-      });
+      const pdfFile = await generateQuotationPdfFile(quotation, selectedCompany);
+      const formData = new FormData();
+      formData.append('email', recipientEmail.trim());
+      if (ccEmail.trim()) {
+        formData.append('cc_email', ccEmail.trim());
+      }
+      formData.append('subject', emailSubject.trim());
+      formData.append('message', emailMessage.trim());
+      formData.append('pdf', {
+        uri: pdfFile.uri,
+        name: pdfFile.fileName,
+        type: 'application/pdf',
+      } as any);
+
+      const response = await quotationsApi.sendEmail(id, formData);
       Alert.alert('Email Sent', response?.detail || 'Quotation email has been dispatched.');
       setEmailModalVisible(false);
     } catch (err: any) {

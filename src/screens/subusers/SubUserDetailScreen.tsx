@@ -87,6 +87,10 @@ export const SubUserDetailScreen: React.FC = () => {
     { icon: 'office-building-outline', label: 'Company', value: user.companyName || '—' },
   ];
 
+  const displayedModules = user.isSalesOrderCreationAllowed
+    ? [...user.allowedModules, 'Sales Order Creation']
+    : user.allowedModules;
+
   return (
     <View style={styles.container}>
       <GradientHeader title="Sub User Details" onBack={() => navigation.goBack()} />
@@ -122,12 +126,12 @@ export const SubUserDetailScreen: React.FC = () => {
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.cardTitle}>Allowed Modules ({user.allowedModules.length})</Text>
-          {user.allowedModules.length === 0 ? (
+          <Text style={styles.cardTitle}>Allowed Modules ({displayedModules.length})</Text>
+          {displayedModules.length === 0 ? (
             <Text style={styles.noModules}>No modules assigned.</Text>
           ) : (
             <View style={styles.moduleWrap}>
-              {user.allowedModules.map((m) => (
+              {displayedModules.map((m) => (
                 <View key={m} style={styles.moduleChip}>
                   <Icon name="check-circle" size={14} color={Colors.success} />
                   <Text style={styles.moduleText}>{m}</Text>

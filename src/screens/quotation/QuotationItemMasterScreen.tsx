@@ -145,9 +145,17 @@ export const QuotationItemMasterScreen: React.FC = () => {
 
     setSaving(true);
     try {
+      const targetCompanyId = companyId || selectedCompany?.recordId || (companies[0]?.recordId ?? 0);
+      if (!targetCompanyId) {
+        Alert.alert('Company Required', 'Please select a company before saving.');
+        setSaving(false);
+        return;
+      }
+
       const isNewUpload = selectedImageUri && !selectedImageUri.startsWith('http');
       const formData = new FormData();
-      formData.append('company_id', String(companyId || selectedCompany?.recordId || 0));
+      formData.append('company_id', String(targetCompanyId));
+      formData.append('vn_company_id', String(targetCompanyId));
       formData.append('item_name', itemName.trim());
       formData.append('narration', narration.trim());
       formData.append('mrp', String(parseFloat(mrp) || 0));

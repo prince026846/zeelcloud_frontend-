@@ -190,16 +190,41 @@ const firstBill = (item: JsonRecord): JsonRecord => {
   return bills.length ? asRecord(bills[0]) : {};
 };
 
+const pushAddressPart = (parts: string[], value: unknown) => {
+  const trimmed = asCleanString(value);
+  if (!trimmed) return;
+  const lower = trimmed.toLowerCase();
+  const existingIndex = parts.findIndex((part) => {
+    const current = part.toLowerCase();
+    return current === lower || current.includes(lower) || lower.includes(current);
+  });
+  if (existingIndex === -1) {
+    parts.push(trimmed);
+    return;
+  }
+  if (trimmed.length > parts[existingIndex].length) {
+    parts[existingIndex] = trimmed;
+  }
+};
+
+// Outstanding payloads can carry street, area and city as separate fields.
+// Keep each distinct part; do not stop at the first non-empty one.
 const parseCity = (item: JsonRecord): string => {
-  const b = firstBill(item);
-  return (
-    asString(item.vv_area) ||
-    asString(item.vv_address1) ||
-    asString(item.vv_address) ||
-    asString(b.vv_address1) ||
-    asString(b.vv_area) ||
-    asString(b.vv_city)
-  );
+  const sources = [item, firstBill(item)];
+  const parts: string[] = [];
+  sources.forEach((source) => {
+    pushAddressPart(parts, source.vv_address1);
+    pushAddressPart(parts, source.vv_address2);
+    pushAddressPart(parts, source.vv_address3);
+    pushAddressPart(parts, source.vv_address);
+    pushAddressPart(parts, source.vv_area);
+    pushAddressPart(parts, source.vv_city);
+    const pin = source.vn_pin_code;
+    if (pin != null && pin !== 0 && String(pin).trim() !== '') {
+      pushAddressPart(parts, String(pin));
+    }
+  });
+  return parts.join(', ');
 };
 
 // Count of bills backing a party (party summary hardcodes nothing else).
@@ -479,30 +504,8 @@ export const mapGpRegisterEntry = (item: JsonRecord): GpRegisterEntry => ({
 });
 
 export const parsePartyAddress = (item: JsonRecord): string | undefined => {
-  const directAddress = asString(item.vv_address);
-  const addr1 = asString(item.vv_address1);
-  const area = asString(item.vv_area);
-  const city = asString(item.vv_city);
-
-  if (directAddress) {
-    const parts = [directAddress];
-    if (area && !directAddress.toLowerCase().includes(area.toLowerCase())) {
-      parts.push(area);
-    }
-    if (city && !directAddress.toLowerCase().includes(city.toLowerCase())) {
-      parts.push(city);
-    }
-    return parts.join(', ');
-  }
-
-  const parts: string[] = [];
-  [addr1, area, city].forEach((part) => {
-    if (part && !parts.some((p) => p.toLowerCase() === part.toLowerCase())) {
-      parts.push(part);
-    }
-  });
-
-  return parts.length ? parts.join(', ') : undefined;
+  const address = parseCity(item);
+  return address || undefined;
 };
 
 export const mapPartyLedgerAccount = (item: JsonRecord): PartyLedgerAccount => ({

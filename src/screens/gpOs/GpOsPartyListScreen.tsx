@@ -68,7 +68,7 @@ export const GpOsPartyListScreen: React.FC<Props> = ({ navigation, route }) => {
     >
       <View style={styles.rowLeft}>
         <Text style={styles.partyName} numberOfLines={1}>{item.name}</Text>
-        {item.address ? <Text style={styles.address} numberOfLines={2}>{item.address}</Text> : null}
+        {item.address ? <Text style={styles.address}>{item.address}</Text> : null}
         {item.phone ? <Text style={styles.phone}>{item.phone}</Text> : null}
       </View>
       <View style={styles.rowRight}>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
-  rowLeft: { flex: 1, paddingRight: Spacing.sm },
+  rowLeft: { flex: 1, flexShrink: 1, minWidth: 0, paddingRight: Spacing.sm },
   partyName: { fontSize: Typography.fontSizes.sm, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
   address: { fontSize: Typography.fontSizes.xs, color: Colors.textSecondary, marginTop: 2 },
   phone: { fontSize: Typography.fontSizes.xs, fontStyle: 'italic', color: Colors.textSecondary, marginTop: 1 },

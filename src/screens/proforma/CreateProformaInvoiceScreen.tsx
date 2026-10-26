@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ZIcon as Icon } from '../../components/ZIcon';
 import { InputField } from '../../components/InputField';
+import { DateField } from '../../components/DateField';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { Card } from '../../components/Card';
@@ -48,6 +49,23 @@ interface DraftInvoiceLine {
 const todayIso = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const documentYear = (value: string): number | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year
+    || parsed.getMonth() !== month - 1
+    || parsed.getDate() !== day
+  ) {
+    return null;
+  }
+  return year;
 };
 
 const createBlankLine = (): DraftInvoiceLine => ({
@@ -134,16 +152,6 @@ export const CreateProformaInvoiceScreen: React.FC = () => {
         if (isMounted) {
           setAccounts(accs);
           setCatalogItems(cats);
-
-          // If create mode and no invoice number yet, fetch next number
-          if (!isEditing && !invoiceNo && companyId) {
-            try {
-              const nextNum = await proformaInvoicesApi.getNextNumber(companyId);
-              if (isMounted && nextNum) setInvoiceNo(nextNum);
-            } catch (e) {
-              console.warn('Could not fetch next proforma invoice number:', e);
-            }
-          }
         }
       } catch (err) {
         console.error('Failed to load initial data:', err);
@@ -156,6 +164,26 @@ export const CreateProformaInvoiceScreen: React.FC = () => {
       isMounted = false;
     };
   }, [companyId, isEditing]);
+
+  useEffect(() => {
+    if (isEditing || !companyId) return;
+    let isMounted = true;
+    const year = documentYear(invoiceDate);
+    if (year == null) {
+      setInvoiceNo('');
+      return;
+    }
+    proformaInvoicesApi.getNextNumber(companyId, year)
+      .then((nextNum) => {
+        if (isMounted && nextNum) setInvoiceNo(nextNum);
+      })
+      .catch((e) => {
+        console.warn('Could not fetch next proforma invoice number:', e);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [companyId, isEditing, invoiceDate]);
 
   // Handle party selection
   const handleSelectParty = (selectedName: string) => {
@@ -251,8 +279,8 @@ export const CreateProformaInvoiceScreen: React.FC = () => {
     if (!partyName.trim()) {
       errs.partyName = 'Party Name is required';
     }
-    if (!invoiceDate.trim()) {
-      errs.invoiceDate = 'Date is required';
+    if (documentYear(invoiceDate) == null) {
+      errs.invoiceDate = 'Select a valid date';
     }
     if (items.length === 0) {
       errs.items = 'Add at least one item';
@@ -295,7 +323,6 @@ export const CreateProformaInvoiceScreen: React.FC = () => {
 
     return {
       company_id: companyId,
-      invoice_no: invoiceNo.trim() || undefined,
       date: invoiceDate.trim(),
       party_id: partyId,
       party_name: partyName.trim(),
@@ -387,16 +414,18 @@ export const CreateProformaInvoiceScreen: React.FC = () => {
                 value={invoiceNo}
                 onChangeText={setInvoiceNo}
                 placeholder="Auto-generated"
+                editable={false}
               />
             </View>
             <View style={styles.half}>
-              <InputField
-                label="Date (YYYY-MM-DD) *"
+              <DateField
+                label="Date *"
                 value={invoiceDate}
-                onChangeText={setInvoiceDate}
-                placeholder="2026-10-15"
-                error={errors.invoiceDate}
+                onChange={setInvoiceDate}
               />
+              {errors.invoiceDate ? (
+                <Text style={styles.dateError}>{errors.invoiceDate}</Text>
+              ) : null}
             </View>
           </View>
 
@@ -718,6 +747,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  dateError: {
+    color: Colors.danger,
+    fontSize: Typography.fontSizes.xs,
+    marginTop: 4,
   },
   header: {
     backgroundColor: Colors.surface,

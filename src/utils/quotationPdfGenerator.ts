@@ -523,3 +523,16 @@ export const shareQuotationPdfFile = async (quotation: Quotation, company?: Comp
     throw error;
   }
 };
+
+/**
+ * Generate a PDF file on disk and return its URI and filename for multipart upload.
+ */
+export const generateQuotationPdfFile = async (
+  quotation: Quotation,
+  company?: Company | null
+): Promise<{ uri: string; fileName: string }> => {
+  const html = generateQuotationHTML(quotation, company);
+  const fileName = formatPdfFileName('quotation', quotation.quotationNo || 'doc');
+  const result = await Print.printToFileAsync({ html, base64: false });
+  return { uri: result.uri, fileName };
+};

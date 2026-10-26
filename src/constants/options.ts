@@ -19,6 +19,8 @@ export const PERMISSION_MODULES: string[] = [
   'Yarn Stock',
   'Beam Stock',
   'Machine Wise Beam Stock',
+  'Quotation',
+  'Proforma Invoice',
 ];
 
 // Mapping from module name to form_id (backend database IDs)
@@ -36,6 +38,8 @@ export const MODULE_TO_FORM_ID: Record<string, number> = {
   'Yarn Stock': 11,
   'Beam Stock': 12,
   'Machine Wise Beam Stock': 13,
+  'Quotation': 14,
+  'Proforma Invoice': 15,
 };
 
 // Mapping from form_id to module name
@@ -53,6 +57,8 @@ export const FORM_ID_TO_MODULE: Record<number, string> = {
   11: 'Yarn Stock',
   12: 'Beam Stock',
   13: 'Machine Wise Beam Stock',
+  14: 'Quotation',
+  15: 'Proforma Invoice',
 };
 
 // Sales Order — item sort options

@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ZIcon as Icon } from '../../components/ZIcon';
 import { InputField } from '../../components/InputField';
+import { DateField } from '../../components/DateField';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { Card } from '../../components/Card';
@@ -48,6 +49,23 @@ interface DraftQuotationLine {
 const todayIso = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+const documentYear = (value: string): number | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year
+    || parsed.getMonth() !== month - 1
+    || parsed.getDate() !== day
+  ) {
+    return null;
+  }
+  return year;
 };
 
 const createBlankLine = (): DraftQuotationLine => ({
@@ -134,16 +152,6 @@ export const CreateQuotationScreen: React.FC = () => {
         if (isMounted) {
           setAccounts(accs);
           setCatalogItems(cats);
-
-          // If create mode and no quotation number yet, fetch next number
-          if (!isEditing && !quotationNo && companyId) {
-            try {
-              const nextNum = await quotationsApi.getNextNumber(companyId);
-              if (isMounted && nextNum) setQuotationNo(nextNum);
-            } catch (e) {
-              console.warn('Could not fetch next quotation number:', e);
-            }
-          }
         }
       } catch (err) {
         console.error('Failed to load initial data:', err);
@@ -156,6 +164,26 @@ export const CreateQuotationScreen: React.FC = () => {
       isMounted = false;
     };
   }, [companyId, isEditing]);
+
+  useEffect(() => {
+    if (isEditing || !companyId) return;
+    let isMounted = true;
+    const year = documentYear(quotationDate);
+    if (year == null) {
+      setQuotationNo('');
+      return;
+    }
+    quotationsApi.getNextNumber(companyId, year)
+      .then((nextNum) => {
+        if (isMounted && nextNum) setQuotationNo(nextNum);
+      })
+      .catch((e) => {
+        console.warn('Could not fetch next quotation number:', e);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [companyId, isEditing, quotationDate]);
 
   // Handle party selection
   const handleSelectParty = (selectedName: string) => {
@@ -251,8 +279,8 @@ export const CreateQuotationScreen: React.FC = () => {
     if (!partyName.trim()) {
       errs.partyName = 'Party Name is required';
     }
-    if (!quotationDate.trim()) {
-      errs.quotationDate = 'Date is required';
+    if (documentYear(quotationDate) == null) {
+      errs.quotationDate = 'Select a valid date';
     }
     if (items.length === 0) {
       errs.items = 'Add at least one item';
@@ -295,7 +323,6 @@ export const CreateQuotationScreen: React.FC = () => {
 
     return {
       company_id: companyId,
-      quotation_no: quotationNo.trim() || undefined,
       date: quotationDate.trim(),
       party_id: partyId,
       party_name: partyName.trim(),
@@ -387,16 +414,18 @@ export const CreateQuotationScreen: React.FC = () => {
                 value={quotationNo}
                 onChangeText={setQuotationNo}
                 placeholder="Auto-generated"
+                editable={false}
               />
             </View>
             <View style={styles.half}>
-              <InputField
-                label="Date (YYYY-MM-DD) *"
+              <DateField
+                label="Date *"
                 value={quotationDate}
-                onChangeText={setQuotationDate}
-                placeholder="2026-10-15"
-                error={errors.quotationDate}
+                onChange={setQuotationDate}
               />
+              {errors.quotationDate ? (
+                <Text style={styles.dateError}>{errors.quotationDate}</Text>
+              ) : null}
             </View>
           </View>
 
@@ -688,6 +717,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  dateError: {
+    color: Colors.danger,
+    fontSize: Typography.fontSizes.xs,
+    marginTop: 4,
   },
   header: {
     backgroundColor: Colors.surface,

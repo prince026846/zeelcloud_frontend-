@@ -69,14 +69,20 @@ export const SubUserForm: React.FC<SubUserFormProps> = ({
   const [allowed, setAllowed] = useState<string[]>(initial?.allowedModules ?? []);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const allSelected = allowed.length === PERMISSION_MODULES.length;
+  const allSelected = allowed.length === PERMISSION_MODULES.length && isSalesOrderCreationAllowed;
 
   const toggleModule = (m: string) => {
     setAllowed((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
   };
 
   const toggleAll = () => {
-    setAllowed(allSelected ? [] : [...PERMISSION_MODULES]);
+    if (allSelected) {
+      setAllowed([]);
+      setIsSalesOrderCreationAllowed(false);
+    } else {
+      setAllowed([...PERMISSION_MODULES]);
+      setIsSalesOrderCreationAllowed(true);
+    }
   };
 
   const handleSubmit = () => {

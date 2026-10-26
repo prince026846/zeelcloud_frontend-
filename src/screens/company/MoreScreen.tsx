@@ -43,11 +43,22 @@ export const MoreScreen: React.FC = () => {
     (navigation as any).navigate('AccountSwitcher');
   };
 
+  const allowedFormNames = (user?.allowedForms || []).map((f) => f.formName);
+  const isOwner = !user?.isSubuser;
+  const hasQuotationAccess = isOwner || allowedFormNames.includes('Quotation') || allowedFormNames.includes('Quotations');
+  const hasProformaAccess = isOwner || allowedFormNames.includes('Proforma Invoice') || allowedFormNames.includes('Pro Forma Invoice');
+
   const items: MoreItem[] = [
     { icon: 'swap-horizontal', label: 'Switch Company', onPress: () => navigation.navigate('AccountTabs') },
-    { icon: 'clipboard-text-outline', label: 'Quotation Management', onPress: () => navigation.navigate('QuotationStack') },
-    { icon: 'file-document-edit-outline', label: 'Pro Forma Invoice', onPress: () => navigation.navigate('ProformaInvoiceStack') },
-    { icon: 'account-group-outline', label: 'Sub Users', onPress: () => navigation.navigate('AccountTabs') },
+    ...(hasQuotationAccess
+      ? [{ icon: 'clipboard-text-outline', label: 'Quotation Management', onPress: () => navigation.navigate('QuotationStack') }]
+      : []),
+    ...(hasProformaAccess
+      ? [{ icon: 'file-document-edit-outline', label: 'Pro Forma Invoice', onPress: () => navigation.navigate('ProformaInvoiceStack') }]
+      : []),
+    ...(isOwner
+      ? [{ icon: 'account-group-outline', label: 'Sub Users', onPress: () => navigation.navigate('AccountTabs') }]
+      : []),
     { icon: 'refresh', label: isRefreshing ? 'Syncing...' : 'Sync Profile & Permissions', onPress: handleRefresh },
     { icon: 'information-outline', label: 'About ZeelCloud', onPress: () => navigation.navigate('About') },
     { icon: 'phone-outline', label: 'Contact Us', onPress: () => navigation.navigate('Contact') },

@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "com.zeel.linfotech",
-      "versionCode": 42,
+      "versionCode": 44,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -44,8 +44,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "b4019117-815a-4593-a921-830fd06cf0bf"
+        "projectId": "d73350f6-c54e-4af2-9cce-415d1fbe1bd6"
       }
-    }
+    },
+    "owner": "prince_di"
   }
 }

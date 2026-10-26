@@ -420,6 +420,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const user = await authApi.getProfile(token);
+      if (get().activeAccountId !== activeAccountId) return;
       const accountInfo = extractAccountInfo(user);
 
       // Update persistent storage

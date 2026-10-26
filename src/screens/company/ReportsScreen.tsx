@@ -52,7 +52,7 @@ const reportModules: ReportModule[] = [
     color: '#6366F1',
     route: 'QuotationStack',
     permissionKey: 'Quotations',
-    permissionKeys: ['Quotations', 'Sales Order', 'Sales Orders'],
+    permissionKeys: ['Quotations', 'Quotation'],
   },
   {
     label: 'Pro Forma Invoice',
@@ -61,7 +61,7 @@ const reportModules: ReportModule[] = [
     color: '#0EA5E9',
     route: 'ProformaInvoiceStack',
     permissionKey: 'Proforma Invoice',
-    permissionKeys: ['Proforma Invoice', 'Quotations', 'Sales Order', 'Sales Orders'],
+    permissionKeys: ['Proforma Invoice', 'Pro Forma Invoice'],
   },
 ];
 

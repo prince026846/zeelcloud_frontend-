@@ -7,6 +7,8 @@ import { Colors, Typography, Spacing } from '../theme';
 interface GradientHeaderProps {
   title: string;
   subtitle?: string;
+  /** Let a long subtitle (such as a party address) wrap instead of ellipsizing. */
+  wrapSubtitle?: boolean;
   onBack?: () => void;
   backIcon?: string;
   rightElement?: ReactNode;
@@ -16,6 +18,7 @@ interface GradientHeaderProps {
 export const GradientHeader: React.FC<GradientHeaderProps> = ({
   title,
   subtitle,
+  wrapSubtitle = false,
   onBack,
   backIcon = 'arrow-left',
   rightElement,
@@ -39,7 +42,10 @@ export const GradientHeader: React.FC<GradientHeaderProps> = ({
             {title}
           </Text>
           {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text
+              style={[styles.subtitle, wrapSubtitle && styles.subtitleWrap]}
+              {...(wrapSubtitle ? {} : { numberOfLines: 1 })}
+            >
               {subtitle}
             </Text>
           ) : null}
@@ -103,6 +109,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
     fontWeight: Typography.fontWeights.medium,
+  },
+  subtitleWrap: {
+    alignSelf: 'stretch',
   },
   rightContainer: {
     minWidth: 38,

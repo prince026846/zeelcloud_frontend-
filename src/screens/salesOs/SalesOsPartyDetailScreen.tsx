@@ -304,6 +304,7 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
     <View style={styles.container}>
       <GradientHeader title="Sales O/s (Party Wise)"
         subtitle={party.city}
+        wrapSubtitle
         onBack={() => navigation.goBack()}
         rightElement={null}
       />
@@ -313,9 +314,9 @@ export const SalesOsPartyDetailScreen: React.FC<Props> = ({ navigation, route })
       {/* Fixed summary — does not scroll with bills */}
       <View style={styles.ogSummary}>
         <View style={styles.summaryTopRow}>
-          <View style={{ flex: 1 }}>
+          <View style={styles.summaryCopy}>
             <Text style={styles.ogParty} numberOfLines={1}>{party.name}</Text>
-            <Text style={styles.ogAddress} numberOfLines={1}>
+            <Text style={styles.ogAddress}>
               {party.city ? `${party.city} | ` : ''}Broker: {brokerName || 'DIRECT'}
             </Text>
             {filter?.fromDate || filter?.toDate ? (
@@ -484,6 +485,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   summaryTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  summaryCopy: { flex: 1, flexShrink: 1, minWidth: 0, paddingRight: Spacing.sm },
   summaryBottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
   ogParty: { fontSize: Typography.fontSizes.md, fontWeight: Typography.fontWeights.bold, color: Colors.textPrimary },
   ogAddress: { fontSize: Typography.fontSizes.sm, color: Colors.textSecondary, marginBottom: 2 },

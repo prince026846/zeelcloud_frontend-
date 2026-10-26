@@ -274,7 +274,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  address: { fontSize: Typography.fontSizes.xs, color: Colors.textSecondary, marginTop: 4 },
+  address: {
+    fontSize: Typography.fontSizes.xs,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    alignSelf: 'stretch',
+  },
   list: { paddingBottom: Spacing.md },
   totalsBlock: {
     backgroundColor: Colors.surface,

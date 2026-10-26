@@ -508,3 +508,17 @@ export const shareProformaInvoicePdfFile = async (invoice: ProformaInvoice, comp
     throw error;
   }
 };
+
+/**
+ * Generate a PDF file on disk and return its URI and filename for multipart upload.
+ */
+export const generateProformaInvoicePdfFile = async (
+  invoice: ProformaInvoice,
+  company?: Company | null
+): Promise<{ uri: string; fileName: string }> => {
+  const html = generateProformaInvoiceHTML(invoice, company);
+  const fileName = formatPdfFileName('proforma_invoice', invoice.invoiceNo || 'doc');
+  const result = await Print.printToFileAsync({ html, base64: false });
+  return { uri: result.uri, fileName };
+};
+

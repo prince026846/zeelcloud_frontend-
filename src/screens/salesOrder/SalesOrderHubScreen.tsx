@@ -1,15 +1,31 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ZIcon as Icon } from '../../components/ZIcon';
 import { Colors, Typography, Spacing, BorderRadius } from '../../theme';
+import { useAuthStore } from '../../store/authStore';
 import type { SalesOrderStackParamList } from '../../types';
 
 export const SalesOrderHubScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<SalesOrderStackParamList>>();
+  const hasAccess = useAuthStore((s) => s.user?.isSalesOrderCreationAllowed === true);
+
+  useEffect(() => {
+    if (!hasAccess) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        (navigation as any).navigate('Dashboard');
+      }
+    }
+  }, [hasAccess, navigation]);
+
+  if (!hasAccess) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>

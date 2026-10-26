@@ -84,16 +84,27 @@ const amountOf = (it: DraftItem) => qtyOf(it) * (parseFloat(it.rate) || 0);
 export const CreateSalesOrderScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<BottomTabNavigationProp<CompanyTabParamList>>();
+  const hasAccess = useAuthStore((state) => state.user?.isSalesOrderCreationAllowed === true);
   const { selectedCompany, companies } = useCompanyStore();
   const { colors: savedColors, load: loadColors, addColors } = useColorStore();
   const activeAccountId = useAuthStore((state) => state.activeAccountId);
 
+  useEffect(() => {
+    if (!hasAccess) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('Dashboard');
+      }
+    }
+  }, [hasAccess, navigation]);
+
   // Load the persisted distinct colour list once.
   useEffect(() => {
-    if (activeAccountId) {
+    if (hasAccess && activeAccountId) {
       loadColors(activeAccountId);
     }
-  }, [loadColors, activeAccountId]);
+  }, [hasAccess, loadColors, activeAccountId]);
 
   const route = useRoute<RouteProp<SalesOrderStackParamList, 'CreateSalesOrder'>>();
   const editOrderId = route.params?.orderId;
@@ -124,7 +135,7 @@ export const CreateSalesOrderScreen: React.FC = () => {
 
   // Load existing order if editing
   useEffect(() => {
-    if (!editOrderId) return;
+    if (!hasAccess || !editOrderId) return;
     salesOrdersApi.getById(editOrderId).then((order) => {
       if (!order) return;
       if (order.is_synced) {
@@ -201,6 +212,7 @@ export const CreateSalesOrderScreen: React.FC = () => {
 
   // ── Load master data (items + parties) on company change ──────────────────
   useEffect(() => {
+    if (!hasAccess) return;
     const compId = selectedCompanyId ? String(selectedCompanyId) : undefined;
     if (!compId) {
       setLoadingMaster(false);
@@ -360,6 +372,10 @@ export const CreateSalesOrderScreen: React.FC = () => {
     : parseFloat(parsedDiscountValue.toFixed(2));
     
   const total = Math.max(0, subtotal - calculatedDiscountAmount);
+
+  if (!hasAccess) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
