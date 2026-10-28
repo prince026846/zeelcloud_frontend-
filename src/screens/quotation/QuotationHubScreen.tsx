@@ -13,12 +13,31 @@ export const QuotationHubScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<QuotationStackParamList>>();
   const { selectedCompany } = useCompanyStore();
 
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else if (navigation.getParent()?.canGoBack()) {
+      navigation.getParent()?.goBack();
+    } else {
+      (navigation as any).navigate('Company', { screen: 'Entry' });
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Quotation Management</Text>
-          <Text style={styles.headerSub}>{selectedCompany?.name || 'All Companies'}</Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={handleBack}
+            style={styles.backBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Quotation Management</Text>
+            <Text style={styles.headerSub}>{selectedCompany?.name || 'All Companies'}</Text>
+          </View>
         </View>
       </View>
 
@@ -86,6 +105,18 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
     paddingHorizontal: Spacing.lg,
     paddingBottom: Spacing.md,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    minHeight: 40,
+  },
+  backBtn: {
+    position: 'absolute',
+    left: 0,
+    zIndex: 10,
   },
   headerContent: {
     alignItems: 'center',

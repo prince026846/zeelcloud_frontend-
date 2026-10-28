@@ -276,8 +276,8 @@ export const CreateProformaInvoiceScreen: React.FC = () => {
 
   const validate = () => {
     const errs: Record<string, string> = {};
-    if (!partyName.trim()) {
-      errs.partyName = 'Party Name is required';
+    if (!partyName.trim() || !partyId) {
+      errs.partyName = 'Party must be selected from the accounts master';
     }
     if (documentYear(invoiceDate) == null) {
       errs.invoiceDate = 'Select a valid date';
@@ -434,8 +434,7 @@ export const CreateProformaInvoiceScreen: React.FC = () => {
             value={partyName}
             options={accounts.map((a) => a.name)}
             onSelect={handleSelectParty}
-            placeholder="Select from Accounts or type custom"
-            allowCustom
+            placeholder="Select party from Accounts"
             subtitleFor={(val) => accounts.find((a) => a.name === val)?.address}
             error={errors.partyName}
           />

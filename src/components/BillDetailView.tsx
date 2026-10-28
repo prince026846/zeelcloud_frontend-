@@ -59,6 +59,18 @@ const itemColumnsFor = (module: BillModule, detail?: BillDetail): GridColumn<Bil
         ),
       });
     }
+    cols.push({
+      key: 'rate',
+      label: 'Rate',
+      flex: 1,
+      align: 'right',
+      render: (i) => {
+        const itemRate = i.rate != null && i.rate > 0 
+          ? i.rate 
+          : (i.amount / ((i.meter || i.weight) || 1));
+        return <GridText>{money(itemRate)}</GridText>;
+      },
+    });
     cols.push(amount);
     return cols;
   }

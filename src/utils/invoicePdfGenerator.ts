@@ -102,6 +102,9 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
           </tr>
         `;
       } else if (isSales) {
+        const itemRate = item.rate != null && item.rate > 0 
+          ? item.rate 
+          : (item.amount / ((item.meter || item.weight) || 1));
         const qtyCells = salesQtyColumns.map((col) => renderNumCell(
           col.fractionDigits === 3 ? num3(col.value(item)) : (col.value(item) || 0),
           col.fractionDigits === 3 ? 'right' : 'center',
@@ -110,6 +113,7 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
           <tr>
             <td class="left">${escapeHtml(item.name || '')}</td>
             ${qtyCells}
+            ${renderNumCell(money(itemRate), 'right')}
             ${renderNumCell(money(item.amount), 'right', 'amount')}
           </tr>
         `;
@@ -140,7 +144,7 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
       reportType === 'Multi GST Tax Invoice' && isSales
         ? '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right amount"></td>'
         : isSales
-          ? `<td class="left"></td>${salesQtyColumns.map(() => '<td class="center"></td>').join('')}<td class="right amount"></td>`
+          ? `<td class="left"></td>${salesQtyColumns.map(() => '<td class="center"></td>').join('')}<td class="right"></td><td class="right amount"></td>`
           : '<td class="left"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="center"></td><td class="right amount"></td>';
     const fillerRow = fillerMinMm > 0 ? `
       <tr class="filler-row" style="height: ${fillerMinMm}mm;">
@@ -176,6 +180,7 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
         <tr>
           <th class="left">Item Name</th>
           ${qtyHeaders}
+          <th class="right">Rate</th>
           <th class="right">Amount</th>
         </tr>
       `;
@@ -223,6 +228,7 @@ export const generateInvoiceHTML = (detail: BillDetail, module: BillModule, repo
         <tr class="footer-row">
           <td class="right" style="font-weight: bold;">Total</td>
           ${qtyFooter}
+          <td class="center"></td>
           ${renderNumCell(money(detail.grandTotal), 'right', 'amount fw-bold')}
         </tr>
       `;

@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DashboardScreen } from '../screens/dashboard/DashboardScreen';
 import { ReportsScreen } from '../screens/company/ReportsScreen';
 import { MoreScreen } from '../screens/company/MoreScreen';
-import { SalesOrderStack } from './stacks/SalesOrderStack';
+import { EntryStack } from './stacks/EntryStack';
 import { StockStack } from './stacks/StockStack';
 import { useBaseTabScreenOptions, tabIcon } from './tabConfig';
 import { useAuthStore } from '../store/authStore';
@@ -13,9 +13,26 @@ const Tab = createBottomTabNavigator<CompanyTabParamList>();
 
 export const CompanyTabs: React.FC = () => {
   const screenOptions = useBaseTabScreenOptions();
-  const canAccessSalesOrders = useAuthStore(
-    (s) => s.user?.isSalesOrderCreationAllowed === true,
-  );
+  const user = useAuthStore((s) => s.user);
+
+  const isOwner = !user?.isSubuser;
+  const allowedForms = user?.allowedForms || [];
+  const hasSalesOrderAccess = isOwner || user?.isSalesOrderCreationAllowed === true;
+  const hasQuotationAccess =
+    isOwner ||
+    allowedForms.some((f) => f.id === 14 || f.formName === 'Quotation' || f.formName === 'Quotations');
+  const hasProformaAccess =
+    isOwner ||
+    allowedForms.some(
+      (f) =>
+        f.id === 15 ||
+        f.formName === 'Proforma Invoice' ||
+        f.formName === 'Pro Forma Invoice' ||
+        f.formName === 'Performa' ||
+        f.formName === 'Performa Invoice'
+    );
+
+  const canAccessEntry = hasSalesOrderAccess || hasQuotationAccess || hasProformaAccess;
 
   return (
   <Tab.Navigator screenOptions={screenOptions}>
@@ -34,11 +51,11 @@ export const CompanyTabs: React.FC = () => {
       component={StockStack}
       options={{ tabBarLabel: 'Stocks', tabBarIcon: tabIcon('package-variant') }}
     />
-    {canAccessSalesOrders ? (
+    {canAccessEntry ? (
       <Tab.Screen
-        name="SalesOrders"
-        component={SalesOrderStack}
-        options={{ tabBarLabel: 'Sales Orders', tabBarIcon: tabIcon('file-document-outline') }}
+        name="Entry"
+        component={EntryStack}
+        options={{ tabBarLabel: 'Entry', tabBarIcon: tabIcon('pencil-box-multiple-outline') }}
       />
     ) : null}
     <Tab.Screen

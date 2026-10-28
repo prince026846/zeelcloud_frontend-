@@ -27,9 +27,26 @@ export const SalesOrderHubScreen: React.FC = () => {
     return null;
   }
 
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else if (navigation.getParent()?.canGoBack()) {
+      navigation.getParent()?.goBack();
+    } else {
+      (navigation as any).navigate('Company', { screen: 'Entry' });
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
+        <TouchableOpacity
+          onPress={handleBack}
+          style={styles.backBtn}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Icon name="arrow-left" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Sales Orders</Text>
       </View>
 
@@ -78,6 +95,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: Spacing.md,
+    position: 'relative',
+  },
+  backBtn: {
+    position: 'absolute',
+    left: Spacing.md,
+    bottom: Spacing.md,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: Typography.fontSizes.lg,

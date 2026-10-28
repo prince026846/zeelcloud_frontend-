@@ -779,6 +779,7 @@ export type AppStackParamList = {
   };
   About: undefined;
   Contact: undefined;
+  SalesOrderStack: undefined;
   QuotationStack: undefined;
   ProformaInvoiceStack: undefined;
 };
@@ -803,9 +804,14 @@ export type CompanyTabParamList = {
   Dashboard: undefined;
   Reports: undefined;
   Stocks: undefined;
-  SalesOrders: undefined;
-  Quotations: undefined;
+  Entry: undefined;
+  SalesOrders?: undefined;
+  Quotations?: undefined;
   More: undefined;
+};
+
+export type EntryStackParamList = {
+  EntryHub: undefined;
 };
 
 export type QuotationStackParamList = {

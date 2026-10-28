@@ -429,14 +429,14 @@ export const CreateQuotationScreen: React.FC = () => {
             </View>
           </View>
 
-          <SearchableSelect
+          <InputField
             label="Party / Customer Name *"
             value={partyName}
-            options={accounts.map((a) => a.name)}
-            onSelect={handleSelectParty}
-            placeholder="Select from Accounts or type custom"
-            allowCustom
-            subtitleFor={(val) => accounts.find((a) => a.name === val)?.address}
+            onChangeText={(val) => {
+              setPartyName(val);
+              setPartyId(null);
+            }}
+            placeholder="Enter customer / firm name"
             error={errors.partyName}
           />
 

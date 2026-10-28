@@ -224,7 +224,7 @@ export const CreateSalesOrderScreen: React.FC = () => {
 
     setLoadingMaster(true);
     Promise.all([
-      itemsApi.getAll(compId),
+      itemsApi.getAll(compId).catch(() => [] as Item[]),
       accountsApi.getAll(shouldFetchAllParties ? undefined : compId).catch(() => [] as AccountParty[]),
     ])
       .then(([fetchedItems, fetchedParties]) => {

@@ -136,7 +136,7 @@ export const SalesOrderListScreen: React.FC = () => {
             <Text style={styles.label}>Items</Text>
             <Text style={styles.value}>{item.items?.length || 0} Item(s)</Text>
           </View>
-          <View style={styles.gridCol} /> {/* Empty column to balance a 3-column grid feel */}
+          <View style={styles.gridCol} />
         </View>
 
         {/* Row 2 */}
@@ -144,7 +144,7 @@ export const SalesOrderListScreen: React.FC = () => {
           <View style={[styles.gridCol, { flex: 1 }]}>
             <Text style={styles.label}>Party</Text>
             <Text style={[styles.value, styles.valueBold]} numberOfLines={2}>
-              {item.partyName}
+              {item.partyName || '-'}
             </Text>
           </View>
         </View>
@@ -156,7 +156,7 @@ export const SalesOrderListScreen: React.FC = () => {
             <Text style={styles.valueBold}>{totalQty.toFixed(3)}</Text>
           </View>
           <View style={styles.gridCol}>
-            {item.discount > 0 ? (
+            {item.discount != null && item.discount > 0 ? (
               <>
                 <Text style={styles.label}>Discount</Text>
                 <Text style={styles.valueBold}>{formatCurrency(item.discount)}</Text>
